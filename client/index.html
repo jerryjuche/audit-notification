@@ -4,254 +4,575 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Audit Notification System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #1c2128;
+            --bg-elevated: #21262d;
+            --border: #30363d;
+            --border-hover: #484f58;
+            --text-primary: #e6edf3;
+            --text-secondary: #7d8590;
+            --text-tertiary: #636e7b;
+            --accent-primary: #58a6ff;
+            --accent-secondary: #1f6feb;
+            --success: #3fb950;
+            --warning: #d29922;
+            --danger: #f85149;
+            --purple: #a371f7;
+            --font-mono: 'JetBrains Mono', monospace;
+            --font-sans: 'Inter', -apple-system, sans-serif;
         }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
-            padding: 20px;
+            line-height: 1.6;
         }
-
-        .container {
-            max-width: 900px;
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 0;
+            margin-bottom: 24px;
+        }
+        .header-content {
+            max-width: 1400px;
             margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
-
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        h1 {
-            color: #667eea;
-            margin-bottom: 10px;
-            font-size: 28px;
-        }
-
-        h2 {
-            color: #333;
-            margin-bottom: 16px;
-            font-size: 20px;
-        }
-
-        .status-bar {
+        .logo {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 12px;
-            background: #f7fafc;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--purple));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .user-menu { display: flex; align-items: center; gap: 16px; }
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .card:hover { border-color: var(--border-hover); }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-tertiary);
+            padding: 4px;
             border-radius: 8px;
             margin-bottom: 20px;
         }
-
-        .status-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #ef4444;
-            animation: pulse 2s infinite;
+        .tab {
+            flex: 1;
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-
-        .status-indicator.connected {
-            background: #10b981;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .input-group {
-            margin-bottom: 16px;
-        }
-
+        .tab:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+        .tab.active { background: var(--accent-secondary); color: white; }
+        .input-group { margin-bottom: 16px; }
         label {
             display: block;
-            margin-bottom: 6px;
-            color: #4b5563;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
             font-weight: 500;
-            font-size: 14px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-
         input {
             width: 100%;
-            padding: 10px 14px;
-            border: 2px solid #e5e7eb;
-            border-radius: 6px;
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
             font-size: 14px;
-            transition: border-color 0.2s;
+            transition: all 0.2s;
         }
-
         input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--accent-primary);
+            background: var(--bg-primary);
+            box-shadow: 0 0 0 3px rgba(88,166,255,0.1);
         }
-
-        input:disabled {
-            background: #f3f4f6;
-            cursor: not-allowed;
-        }
-
         button {
             padding: 10px 20px;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
         }
-
-        .btn-primary {
-            background: #667eea;
+        .btn-primary { background: var(--accent-secondary); color: white; }
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-primary);
+            transform: translateY(-1px);
+        }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover:not(:disabled) { background: #2ea043; transform: translateY(-1px); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover:not(:disabled) { background: #da3633; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-full { width: 100%; }
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-primary), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .status-badge.online { background: rgba(63,185,80,0.1); color: var(--success); }
+        .status-badge.offline { background: rgba(248,81,73,0.1); color: var(--danger); }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .online-users {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+        }
+        .user-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .user-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 13px;
+            font-family: var(--font-mono);
+        }
+        .user-chip .dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; }
+        .notification-icon {
+            position: relative;
+            cursor: pointer;
+            padding: 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .notification-icon:hover { background: var(--bg-elevated); }
+        .notification-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            min-width: 18px;
+            height: 18px;
+            background: var(--danger);
+            border: 2px solid var(--bg-secondary);
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: white;
         }
-
-        .btn-primary:hover {
-            background: #5568d3;
+        .notification-panel {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            width: 420px;
+            max-width: calc(100vw - 40px);
+            max-height: calc(100vh - 120px);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            overflow: hidden;
+            z-index: 10000;
         }
-
-        .btn-danger {
-            background: #ef4444;
-            color: white;
+        .notification-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
         }
-
-        .btn-danger:hover {
-            background: #dc2626;
+        .notification-list { max-height: 500px; overflow-y: auto; }
+        .notification-item {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
         }
-
-        .btn-success {
-            background: #10b981;
-            color: white;
+        .notification-item:hover { background: var(--bg-tertiary); }
+        .notification-item.unread {
+            background: rgba(88,166,255,0.05);
+            border-left: 3px solid var(--accent-primary);
         }
-
-        .btn-success:hover {
-            background: #059669;
+        .notification-time {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-bottom: 6px;
+            font-family: var(--font-mono);
         }
-
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .notification-text {
+            color: var(--text-primary);
+            font-size: 14px;
+            line-height: 1.5;
+            word-break: break-word;
         }
-
-        .logs-container {
-            background: #1f2937;
-            color: #e5e7eb;
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 400px;
+        }
+        .toast {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            display: flex;
+            gap: 12px;
+            animation: slideIn 0.3s ease-out;
+        }
+        .toast.audit { border-left: 3px solid var(--accent-primary); }
+        .toast.success { border-left: 3px solid var(--success); }
+        .toast.error { border-left: 3px solid var(--danger); }
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .toast-icon { font-size: 20px; }
+        .toast-content { flex: 1; }
+        .toast-title { font-weight: 600; margin-bottom: 4px; }
+        .toast-message { font-size: 13px; color: var(--text-secondary); }
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            padding: 0;
+            width: auto;
+            font-size: 18px;
+        }
+        .activity-log {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
             border-radius: 8px;
             padding: 16px;
-            max-height: 300px;
+            max-height: 400px;
             overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
+            font-family: var(--font-mono);
+            font-size: 12px;
         }
-
         .log-entry {
-            margin-bottom: 8px;
-            padding: 4px 0;
-            border-bottom: 1px solid #374151;
-        }
-
-        .log-entry:last-child {
-            border-bottom: none;
-        }
-
-        .log-time {
-            color: #9ca3af;
-            margin-right: 8px;
-        }
-
-        .log-success { color: #10b981; }
-        .log-error { color: #ef4444; }
-        .log-warning { color: #f59e0b; }
-        .log-info { color: #3b82f6; }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr auto;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
             gap: 12px;
-            align-items: end;
         }
-
-        .notification-permission {
-            background: #fef3c7;
-            border-left: 4px solid #f59e0b;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 16px;
+        .log-time { color: var(--text-tertiary); }
+        .log-message { color: var(--text-secondary); }
+        .log-success .log-message { color: var(--success); }
+        .log-error .log-message { color: var(--danger); }
+        .log-warning .log-message { color: var(--warning); }
+        .log-info .log-message { color: var(--accent-primary); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .hidden { display: none !important; }
+        .banner {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--warning);
+            border-left: 4px solid var(--warning);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
         }
-
-        .notification-permission button {
-            margin-top: 8px;
-            background: #f59e0b;
+        .search-wrapper { position: relative; }
+        .search-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-top: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .search-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+        }
+        .search-item:hover { background: var(--bg-tertiary); }
+        .search-item-name {
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .search-item-username {
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-family: var(--font-mono);
+        }
+        .file-input { display: none; }
+        .file-label {
+            display: inline-block;
+            padding: 10px 20px;
+            background: var(--accent-secondary);
             color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
         }
-
-        .notification-permission button:hover {
-            background: #d97706;
+        .file-label:hover { background: var(--accent-primary); transform: translateY(-1px); }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-tertiary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 4px; }
+        @media (max-width: 768px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">🔔</div>
+                <span>Audit System</span>
+            </div>
+            <div class="user-menu" id="headerMenu" style="display: none;">
+                <span id="headerUsername" style="color: var(--text-secondary); font-size: 14px;"></span>
+                <div class="notification-icon" onclick="toggleNotificationPanel()">
+                    🔔
+                    <span class="notification-badge hidden" id="notificationBadge">0</span>
+                </div>
+                <button class="btn-danger btn-sm" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="notificationPanel" class="notification-panel hidden">
+        <div class="notification-header">
+            <span style="font-weight: 600;">Notifications</span>
+            <button class="btn-sm" onclick="clearAllNotifications()" style="background: var(--bg-tertiary); color: var(--text-secondary);">Clear All</button>
+        </div>
+        <div id="notificationList" class="notification-list">
+            <div style="padding: 40px 20px; text-align: center; color: var(--text-tertiary);">No notifications</div>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <audio id="notificationSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE=" type="audio/wav">
+    </audio>
+
     <div class="container">
-        <div class="card">
-            <h1>🔔 Audit Notification System</h1>
-            <p style="color: #6b7280; margin-bottom: 20px;">Real-time audit notifications for Gitea users</p>
-            
-            <div id="notificationPermission" class="notification-permission" style="display: none;">
-                <strong>⚠️ Enable Notifications</strong>
-                <p>Allow notifications to receive audit alerts even when this tab is in the background.</p>
-                <button onclick="requestNotificationPermission()">Enable Notifications</button>
-            </div>
-
-            <div class="status-bar">
-                <div id="statusIndicator" class="status-indicator"></div>
-                <div>
-                    <strong id="statusText">Disconnected</strong>
-                    <div style="font-size: 12px; color: #6b7280;" id="statusDetail">Enter username to connect</div>
+        <div id="authSection">
+            <div class="card" style="max-width: 500px; margin: 80px auto;">
+                <div class="tabs">
+                    <button class="tab active" onclick="showTab('login', this)">Login</button>
+                    <button class="tab" onclick="showTab('register', this)">Register</button>
                 </div>
-            </div>
-
-            <div class="input-group">
-                <label for="username">Gitea Username</label>
-                <div class="form-row">
-                    <input id="username" type="text" placeholder="e.g., jerry" autocomplete="username">
-                    <button id="toggleButton" class="btn-primary" onclick="connect()">Connect</button>
+                <div id="loginTab">
+                    <div class="input-group">
+                        <label>Username</label>
+                        <input id="loginUsername" type="text" placeholder="Enter username">
+                    </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input id="loginPassword" type="password" placeholder="Enter password">
+                    </div>
+                    <button class="btn-primary btn-full" onclick="login()">Login</button>
+                </div>
+                <div id="registerTab" class="hidden">
+                    <div class="input-group">
+                        <label>Full Name</label>
+                        <input id="regFullName" type="text" placeholder="John Doe">
+                    </div>
+                    <div class="input-group">
+                        <label>Username</label>
+                        <input id="regUsername" type="text" placeholder="johndoe">
+                    </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input id="regPassword" type="password" placeholder="Min 6 characters">
+                    </div>
+                    <button class="btn-success btn-full" onclick="register()">Create Account</button>
                 </div>
             </div>
         </div>
 
-        <div class="card">
-            <h2>📤 Send Audit Request</h2>
-            <div class="input-group">
-                <label for="targetUser">Target User</label>
-                <input id="targetUser" type="text" placeholder="Username to audit" autocomplete="off">
+        <div id="mainApp" class="hidden">
+            <div id="notifBanner" class="banner" style="display: none;">
+                <div style="font-weight: 600; margin-bottom: 8px;">🔔 Enable Desktop Notifications</div>
+                <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">Get notified when away</div>
+                <button class="btn-primary btn-sm" onclick="requestNotificationPermission()">Enable</button>
             </div>
-            <div class="input-group">
-                <label for="requester">Your Name</label>
-                <input id="requester" type="text" placeholder="Your name" autocomplete="name">
-            </div>
-            <div class="input-group">
-                <label for="details">Details</label>
-                <input id="details" type="text" placeholder="What needs to be audited?" autocomplete="off">
-            </div>
-            <button class="btn-success" onclick="sendAudit()">Send Audit Request</button>
-        </div>
 
-        <div class="card">
-            <h2>📋 Activity Log</h2>
-            <div id="logs" class="logs-container">
-                <div class="log-entry">
-                    <span class="log-time">[System]</span>
-                    <span class="log-info">Ready to connect</span>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Online Users</div>
+                    <div class="stat-value" id="statOnline">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Users</div>
+                    <div class="stat-value" id="statTotal">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Audits Sent</div>
+                    <div class="stat-value" id="statAudits">0</div>
+                </div>
+            </div>
+
+            <div id="importCard" class="card" style="display: none;">
+                <div class="card-header">
+                    <div class="card-title">📥 Import Users</div>
+                </div>
+                <div style="padding: 20px; text-align: center;">
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                        Excel: Column A = First Name, B = Last Name, C = Username
+                    </p>
+                    <input type="file" id="excelFile" class="file-input" accept=".xlsx,.xls" onchange="importUsers()">
+                    <label for="excelFile" class="file-label">Choose Excel File</label>
+                    <div id="importStatus" style="margin-top: 12px;"></div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Connection</div>
+                        <span class="status-badge offline" id="statusBadge">
+                            <span class="status-dot"></span>
+                            <span id="statusText">Offline</span>
+                        </span>
+                    </div>
+                    <button id="toggleButton" class="btn-primary btn-full" onclick="connectWS()">Connect</button>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🌐 Online Now</div>
+                    </div>
+                    <div class="online-users">
+                        <div class="user-chips" id="onlineUsersList">
+                            <span style="color: var(--text-tertiary); font-size: 14px;">No users online</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="auditCard" class="card hidden">
+                <div class="card-header">
+                    <div class="card-title">📤 Send Audit</div>
+                </div>
+                <div class="grid-2">
+                    <div class="input-group search-wrapper">
+                        <label>Target User</label>
+                        <input 
+                            id="targetUser" 
+                            type="text" 
+                            placeholder="Type to search..." 
+                            autocomplete="off"
+                            oninput="searchUsers(this.value)"
+                            onfocus="searchUsers(this.value)"
+                        >
+                        <div id="searchDropdown" class="search-dropdown hidden"></div>
+                    </div>
+                    <div class="input-group">
+                        <label>Details</label>
+                        <input id="details" type="text" placeholder="What needs auditing?">
+                    </div>
+                </div>
+                <button class="btn-success btn-full" onclick="sendAudit()">Send Request</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">📋 Activity Log</div>
+                </div>
+                <div id="logs" class="activity-log">
+                    <div class="log-entry log-info">
+                        <span class="log-time">[SYSTEM]</span>
+                        <span class="log-message">Ready</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -259,191 +580,482 @@
 
     <script>
         let ws = null;
-        const toggleButton = document.getElementById('toggleButton');
-        const usernameInput = document.getElementById('username');
-        const statusIndicator = document.getElementById('statusIndicator');
-        const statusText = document.getElementById('statusText');
-        const statusDetail = document.getElementById('statusDetail');
-        
+        let currentUserData = null;
         let isManualDisconnect = false;
         let reconnectAttempts = 0;
         const maxBackoff = 30000;
         const initialBackoff = 1000;
+        let notifications = [];
+        let unreadCount = 0;
+        let onlineUsers = [];
+        let auditsSent = 0;
+        let totalUsers = 0;
 
-        // Check notification permission on load
-        window.onload = () => {
-            checkNotificationPermission();
-            
-            const storedUsername = localStorage.getItem('username');
-            if (storedUsername) {
-                usernameInput.value = storedUsername;
-                connect();
+        function showTab(tab, button) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            if (button) button.classList.add('active');
+            if (tab === 'login') {
+                document.getElementById('loginTab').classList.remove('hidden');
+                document.getElementById('registerTab').classList.add('hidden');
+            } else {
+                document.getElementById('loginTab').classList.add('hidden');
+                document.getElementById('registerTab').classList.remove('hidden');
             }
-        };
+        }
 
-        function checkNotificationPermission() {
-            if ('Notification' in window && Notification.permission === 'default') {
-                document.getElementById('notificationPermission').style.display = 'block';
+        function updateStats() {
+            document.getElementById('statOnline').textContent = onlineUsers.length;
+            document.getElementById('statTotal').textContent = totalUsers;
+            document.getElementById('statAudits').textContent = auditsSent;
+        }
+
+        function updateOnlineUsers(users) {
+            onlineUsers = users || [];
+            const list = document.getElementById('onlineUsersList');
+            if (onlineUsers.length === 0) {
+                list.innerHTML = '<span style="color: var(--text-tertiary); font-size: 14px;">No users online</span>';
+            } else {
+                list.innerHTML = onlineUsers.map(user => 
+                    `<div class="user-chip"><span class="dot"></span>${user}</div>`
+                ).join('');
             }
+            updateStats();
         }
 
         function requestNotificationPermission() {
-            Notification.requestPermission().then(permission => {
-                if (permission === 'granted') {
-                    document.getElementById('notificationPermission').style.display = 'none';
-                    logMessage('Notifications enabled', 'success');
-                }
-            });
-        }
-
-        function logMessage(msg, type = 'info') {
-            const logs = document.getElementById('logs');
-            const entry = document.createElement('div');
-            entry.className = 'log-entry';
-            
-            const time = new Date().toLocaleTimeString();
-            entry.innerHTML = `<span class="log-time">[${time}]</span><span class="log-${type}">${msg}</span>`;
-            
-            logs.appendChild(entry);
-            logs.scrollTop = logs.scrollHeight;
-            console.log(`[${time}] ${msg}`);
-        }
-
-        function showNotification(title, body) {
-            if (Notification.permission === 'granted') {
-                const notification = new Notification(title, { 
-                    body: body,
-                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23667eea"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>'
-                });
-                notification.onclick = () => window.focus();
-            } else if (Notification.permission !== 'denied') {
+            if ('Notification' in window && Notification.permission === 'default') {
                 Notification.requestPermission().then(permission => {
                     if (permission === 'granted') {
-                        showNotification(title, body);
+                        showToast('Success', 'Notifications enabled', 'success', 3000);
+                        document.getElementById('notifBanner').style.display = 'none';
                     }
                 });
             }
         }
 
-        function connect() {
-            const username = usernameInput.value.trim();
-            if (!username) {
-                logMessage('Please enter a username', 'error');
+        function checkNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                document.getElementById('notifBanner').style.display = 'block';
+            }
+        }
+
+        function showDesktopNotification(title, message) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                const n = new Notification(title, { body: message, tag: 'audit' });
+                n.onclick = () => { window.focus(); n.close(); };
+                setTimeout(() => n.close(), 8000);
+            }
+        }
+
+        function showToast(title, message, type = 'info', duration = 5000) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️', audit: '🔔' };
+            toast.innerHTML = `
+                <div class="toast-icon">${icons[type] || icons.info}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+            container.appendChild(toast);
+            try { document.getElementById('notificationSound').play().catch(() => {}); } catch (e) {}
+            if (duration > 0) {
+                setTimeout(() => {
+                    toast.style.animation = 'slideIn 0.3s ease-out reverse';
+                    setTimeout(() => toast.remove(), 300);
+                }, duration);
+            }
+        }
+
+        function addNotification(message) {
+            notifications.unshift({ id: Date.now(), message, time: new Date(), read: false });
+            unreadCount++;
+            updateNotificationBadge();
+            updateNotificationPanel();
+            saveNotifications();
+        }
+
+        function updateNotificationBadge() {
+            const badge = document.getElementById('notificationBadge');
+            if (unreadCount > 0) {
+                badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function updateNotificationPanel() {
+            const list = document.getElementById('notificationList');
+            if (notifications.length === 0) {
+                list.innerHTML = '<div style="padding: 40px 20px; text-align: center; color: var(--text-tertiary);">No notifications</div>';
                 return;
             }
+            list.innerHTML = notifications.map(n => `
+                <div class="notification-item ${n.read ? '' : 'unread'}" onclick="markAsRead(${n.id})">
+                    <div class="notification-time">${formatTime(n.time)}</div>
+                    <div class="notification-text">${n.message}</div>
+                </div>
+            `).join('');
+        }
 
-            localStorage.setItem('username', username);
-            usernameInput.disabled = true;
-            toggleButton.disabled = true;
+        function toggleNotificationPanel() {
+            const panel = document.getElementById('notificationPanel');
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden')) {
+                notifications.forEach(n => n.read = true);
+                unreadCount = 0;
+                updateNotificationBadge();
+                updateNotificationPanel();
+                saveNotifications();
+            }
+        }
 
-            const wsUrl = `ws://${window.location.hostname}:8080/ws?user=${encodeURIComponent(username)}`;
-            logMessage(`Connecting as ${username}...`, 'info');
-            statusDetail.textContent = 'Connecting...';
+        function markAsRead(id) {
+            const n = notifications.find(x => x.id === id);
+            if (n && !n.read) {
+                n.read = true;
+                unreadCount = Math.max(0, unreadCount - 1);
+                updateNotificationBadge();
+                saveNotifications();
+            }
+        }
+
+        function clearAllNotifications() {
+            notifications = [];
+            unreadCount = 0;
+            updateNotificationBadge();
+            updateNotificationPanel();
+            saveNotifications();
+        }
+
+        function formatTime(date) {
+            const diff = Math.floor((new Date() - date) / 1000);
+            if (diff < 60) return 'Just now';
+            if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+            return date.toLocaleDateString();
+        }
+
+        function saveNotifications() {
+            localStorage.setItem('notifications', JSON.stringify(notifications.slice(0, 50)));
+        }
+
+        function loadNotifications() {
+    const stored = localStorage.getItem('notifications');
+    if (stored) {
+        notifications = JSON.parse(stored).map(n => ({ ...n, time: new Date(n.time) }));
+        
+        // Remove notifications older than 24 hours
+        const dayAgo = Date.now() - (24 * 60 * 60 * 1000);
+        notifications = notifications.filter(n => n.time > dayAgo);
+        
+        unreadCount = notifications.filter(n => !n.read).length;
+        updateNotificationBadge();
+        updateNotificationPanel();
+        saveNotifications();
+    }
+}
+
+        function logMessage(msg, type = 'info') {
+            const logs = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.innerHTML = `<span class="log-time">[${new Date().toLocaleTimeString()}]</span><span class="log-message">${msg}</span>`;
+            logs.appendChild(entry);
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        async function register() {
+            const fullName = document.getElementById('regFullName').value.trim();
+            const username = document.getElementById('regUsername').value.trim();
+            const password = document.getElementById('regPassword').value;
+
+            if (!fullName || !username || !password) {
+                showToast('Error', 'All fields required', 'error', 3000);
+                return;
+            }
+            if (password.length < 6) {
+                showToast('Error', 'Password min 6 characters', 'error', 3000);
+                return;
+            }
 
             try {
-                ws = new WebSocket(wsUrl);
+                const response = await fetch('http://localhost:8080/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email: `${username}@local.system`, full_name: fullName, password })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    showToast('Success', 'Account created', 'success', 3000);
+                    showTab('login', document.querySelectorAll('.tab')[0]);
+                    document.getElementById('loginUsername').value = username;
+                } else {
+                    showToast('Error', data.message || 'Registration failed', 'error', 3000);
+                }
             } catch (error) {
-                logMessage(`Connection failed: ${error.message}`, 'error');
-                usernameInput.disabled = false;
-                toggleButton.disabled = false;
+                showToast('Error', error.message, 'error', 3000);
+            }
+        }
+
+        async function login() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!username || !password) {
+                showToast('Error', 'Username and password required', 'error', 3000);
                 return;
             }
 
+            try {
+                const response = await fetch('http://localhost:8080/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    currentUserData = data.user;
+                    localStorage.setItem('currentUser', JSON.stringify(currentUserData));
+                    showMainApp();
+                } else {
+                    showToast('Error', 'Invalid credentials', 'error', 3000);
+                }
+            } catch (error) {
+                showToast('Error', error.message, 'error', 3000);
+            }
+        }
+
+        function showMainApp() {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('headerMenu').style.display = 'flex';
+            document.getElementById('headerUsername').textContent = `@${currentUserData.username}`;
+            logMessage(`Welcome ${currentUserData.full_name}`, 'success');
+            loadNotifications();
+            checkNotificationPermission();
+            
+            if (currentUserData.username === 'admin') {
+                document.getElementById('importCard').style.display = 'block';
+            }
+            
+            auditsSent = parseInt(localStorage.getItem('auditsSent') || '0');
+            totalUsers = parseInt(localStorage.getItem('totalUsers') || '0');
+            updateStats();
+            setTimeout(() => { if (!ws || ws.readyState !== WebSocket.OPEN) connectWS(); }, 500);
+        }
+
+        function logout() {
+            if (ws) ws.close();
+            currentUserData = null;
+            localStorage.removeItem('currentUser');
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('headerMenu').style.display = 'none';
+            document.getElementById('auditCard').classList.add('hidden');
+            updateOnlineUsers([]);
+        }
+
+        function connectWS() {
+            if (!currentUserData) return;
+            const wsUrl = `ws://localhost:8080/ws?user=${currentUserData.username}`;
+            logMessage('Connecting...', 'info');
+            ws = new WebSocket(wsUrl);
+
             ws.onopen = () => {
-                statusIndicator.classList.add('connected');
-                statusText.textContent = 'Connected';
-                statusDetail.textContent = `Logged in as ${username}`;
-                logMessage('Connected successfully!', 'success');
-                
+                document.getElementById('statusBadge').className = 'status-badge online';
+                document.getElementById('statusText').textContent = 'Connected';
+                document.getElementById('toggleButton').textContent = 'Disconnect';
+                document.getElementById('toggleButton').className = 'btn-danger btn-full';
+                document.getElementById('toggleButton').onclick = disconnectWS;
+                document.getElementById('auditCard').classList.remove('hidden');
+                logMessage('Connected', 'success');
                 reconnectAttempts = 0;
                 isManualDisconnect = false;
-                
-                toggleButton.textContent = 'Disconnect';
-                toggleButton.className = 'btn-danger';
-                toggleButton.onclick = disconnect;
-                toggleButton.disabled = false;
+                requestNotificationPermission();
+                fetchOnlineUsers();
+                if (window.onlineUsersInterval) clearInterval(window.onlineUsersInterval);
+                window.onlineUsersInterval = setInterval(fetchOnlineUsers, 5000);
             };
 
             ws.onmessage = (event) => {
-                showNotification('🔔 Audit Notification', event.data);
+                showToast('Audit Request', event.data, 'audit', 8000);
+                showDesktopNotification('🔔 Audit Request', event.data);
+                addNotification(event.data);
                 logMessage(`Received: ${event.data}`, 'success');
             };
 
-            ws.onclose = (event) => {
-                statusIndicator.classList.remove('connected');
-                statusText.textContent = 'Disconnected';
-                statusDetail.textContent = event.reason || 'Connection closed';
-                
-                logMessage(`Disconnected (code: ${event.code})`, 'warning');
-                
-                toggleButton.textContent = 'Connect';
-                toggleButton.className = 'btn-primary';
-                toggleButton.onclick = connect;
-                toggleButton.disabled = false;
-                usernameInput.disabled = false;
+            ws.onclose = () => {
+                document.getElementById('statusBadge').className = 'status-badge offline';
+                document.getElementById('statusText').textContent = 'Disconnected';
+                document.getElementById('toggleButton').textContent = 'Connect';
+                document.getElementById('toggleButton').className = 'btn-primary btn-full';
+                document.getElementById('toggleButton').onclick = connectWS;
+                document.getElementById('auditCard').classList.add('hidden');
+                logMessage('Disconnected', 'warning');
                 ws = null;
-
+                if (window.onlineUsersInterval) {
+                    clearInterval(window.onlineUsersInterval);
+                    window.onlineUsersInterval = null;
+                }
                 if (!isManualDisconnect) {
                     const delay = Math.min(initialBackoff * Math.pow(2, reconnectAttempts), maxBackoff);
-                    logMessage(`Reconnecting in ${delay / 1000}s... (attempt ${reconnectAttempts + 1})`, 'info');
-                    setTimeout(connect, delay);
+                    logMessage(`Reconnecting in ${delay/1000}s...`, 'info');
+                    setTimeout(connectWS, delay);
                     reconnectAttempts++;
                 } else {
                     isManualDisconnect = false;
                 }
             };
 
-            ws.onerror = (error) => {
-                logMessage('Connection error occurred', 'error');
-                console.error('WebSocket error:', error);
-            };
+            ws.onerror = () => logMessage('Connection error', 'error');
         }
 
-        function disconnect() {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                isManualDisconnect = true;
-                logMessage('Disconnecting...', 'info');
-                ws.close(1000, 'User requested disconnect');
-                localStorage.removeItem('username');
-                usernameInput.value = '';
+        function disconnectWS() {
+            isManualDisconnect = true;
+            if (ws) ws.close();
+            if (window.onlineUsersInterval) {
+                clearInterval(window.onlineUsersInterval);
+                window.onlineUsersInterval = null;
+            }
+            logMessage('Disconnected', 'info');
+        }
+
+        async function fetchOnlineUsers() {
+            try {
+                const response = await fetch(`http://localhost:8080/online?_=${Date.now()}`, { cache: 'no-cache' });
+                const data = await response.json();
+                updateOnlineUsers(data.online);
+                totalUsers = data.total;
+                updateStats();
+                localStorage.setItem('totalUsers', totalUsers);
+            } catch (error) {
+                console.error('Fetch error:', error);
             }
         }
 
-        function sendAudit() {
+        let searchTimeout;
+        async function searchUsers(query) {
+            clearTimeout(searchTimeout);
+            const dropdown = document.getElementById('searchDropdown');
+            if (!query || query.length < 2) {
+                dropdown.classList.add('hidden');
+                return;
+            }
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const response = await fetch(`http://localhost:8080/search?q=${encodeURIComponent(query)}`);
+                    const users = await response.json();
+                    if (users.length === 0) {
+                        dropdown.innerHTML = '<div style="padding: 12px; color: var(--text-tertiary);">No users found</div>';
+                    } else {
+                        dropdown.innerHTML = users.map(user => `
+                            <div class="search-item" onclick="selectUser('${user.username}', '${user.fullName}')">
+                                <div class="search-item-name">${user.fullName}</div>
+                                <div class="search-item-username">@${user.username}</div>
+                            </div>
+                        `).join('');
+                    }
+                    dropdown.classList.remove('hidden');
+                } catch (error) {
+                    console.error('Search error:', error);
+                }
+            }, 300);
+        }
+
+        function selectUser(username, fullName) {
+            document.getElementById('targetUser').value = username;
+            document.getElementById('searchDropdown').classList.add('hidden');
+            document.getElementById('details').focus();
+        }
+
+        async function sendAudit() {
             if (!ws || ws.readyState !== WebSocket.OPEN) {
-                logMessage('Connect first before sending audit requests', 'error');
+                showToast('Error', 'Connect first', 'error', 3000);
                 return;
             }
-
             const targetUser = document.getElementById('targetUser').value.trim();
-            const requester = document.getElementById('requester').value.trim();
             const details = document.getElementById('details').value.trim();
-
-            if (!targetUser || !requester || !details) {
-                logMessage('All fields are required', 'error');
+            if (!targetUser || !details) {
+                showToast('Error', 'All fields required', 'error', 3000);
                 return;
             }
-
-            const data = { targetUser, requester, details };
-            
-            logMessage(`Sending audit request to ${targetUser}...`, 'info');
-
-            fetch(`http://${window.location.hostname}:8080/audit`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            })
-            .then(res => res.json())
-            .then(data => {
-                logMessage(`✅ ${data.message}`, 'success');
-                // Clear form
+            try {
+                const response = await fetch('http://localhost:8080/audit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ targetUser, requester: currentUserData.username, details })
+                });
+                const data = await response.json();
+                logMessage(data.message, 'success');
+                showToast('Success', data.message, 'success', 3000);
                 document.getElementById('targetUser').value = '';
                 document.getElementById('details').value = '';
-            })
-            .catch(err => {
-                logMessage(`❌ Error: ${err.message}`, 'error');
-            });
+                auditsSent++;
+                localStorage.setItem('auditsSent', auditsSent);
+                updateStats();
+            } catch (error) {
+                logMessage('Error: ' + error.message, 'error');
+                showToast('Error', error.message, 'error', 3000);
+            }
         }
+
+        async function importUsers() {
+            if (currentUserData.username !== 'admin') {
+                showToast('Error', 'Admin only', 'error', 3000);
+                return;
+            }
+            const fileInput = document.getElementById('excelFile');
+            const statusDiv = document.getElementById('importStatus');
+            if (!fileInput.files[0]) return;
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            statusDiv.innerHTML = '<span style="color: var(--accent-primary);">Importing...</span>';
+            
+            try {
+                const response = await fetch(`http://localhost:8080/import?admin=${currentUserData.username}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    statusDiv.innerHTML = `<span style="color: var(--success);">✅ Imported ${data.imported}, skipped ${data.skipped}</span>`;
+                    showToast('Success', `Imported ${data.imported} users`, 'success', 3000);
+                    fetchOnlineUsers();
+                } else {
+                    statusDiv.innerHTML = '<span style="color: var(--danger);">Failed</span>';
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<span style="color: var(--danger);">${error.message}</span>`;
+            }
+            fileInput.value = '';
+        }
+
+        window.onload = () => {
+            const stored = localStorage.getItem('currentUser');
+            if (stored) {
+                currentUserData = JSON.parse(stored);
+                showMainApp();
+            }
+        };
+
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('notificationPanel');
+            const icon = document.querySelector('.notification-icon');
+            if (panel && !panel.contains(e.target) && !icon?.contains(e.target)) {
+                panel.classList.add('hidden');
+            }
+            
+            const searchWrapper = document.querySelector('.search-wrapper');
+            if (searchWrapper && !searchWrapper.contains(e.target)) {
+                document.getElementById('searchDropdown')?.classList.add('hidden');
+            }
+        });
     </script>
 </body>
 </html>
