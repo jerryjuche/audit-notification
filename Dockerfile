@@ -10,7 +10,8 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o audit-server cmd/server/main.go
+# Remove CGO flags causing issues
+RUN go build -tags "sqlite_omit_load_extension" -o audit-server cmd/server/main.go
 
 # Runtime stage
 FROM alpine:latest
@@ -25,7 +26,6 @@ COPY --from=builder /app/client ./client
 EXPOSE 8080
 
 ENV PORT=8080
-ENV MOCK_AUTH=true
 ENV DB_PATH=/data/notifications.db
 
 VOLUME ["/data"]
