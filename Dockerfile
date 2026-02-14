@@ -1,7 +1,11 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.21-bullseye AS builder
 
-RUN apk add --no-cache git gcc musl-dev sqlite-dev
+RUN apt-get update && apt-get install -y \
+    gcc \
+    sqlite3 \
+    libsqlite3-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -10,13 +14,15 @@ RUN go mod download
 
 COPY . .
 
-# Remove CGO flags causing issues
-RUN go build -tags "sqlite_omit_load_extension" -o audit-server cmd/server/main.go
+RUN CGO_ENABLED=1 go build -o audit-server cmd/server/main.go
 
 # Runtime stage
-FROM alpine:latest
+FROM debian:bullseye-slim
 
-RUN apk --no-cache add ca-certificates sqlite-libs
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    sqlite3 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /root/
 
