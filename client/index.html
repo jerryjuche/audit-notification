@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit Notification System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 16px;
+            font-size: 20px;
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #f7fafc;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ef4444;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background: #10b981;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #4b5563;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        input:disabled {
+            background: #f3f4f6;
+            cursor: not-allowed;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .logs-container {
+            background: #1f2937;
+            color: #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 4px 0;
+            border-bottom: 1px solid #374151;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-time {
+            color: #9ca3af;
+            margin-right: 8px;
+        }
+
+        .log-success { color: #10b981; }
+        .log-error { color: #ef4444; }
+        .log-warning { color: #f59e0b; }
+        .log-info { color: #3b82f6; }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .notification-permission {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+
+        .notification-permission button {
+            margin-top: 8px;
+            background: #f59e0b;
+            color: white;
+        }
+
+        .notification-permission button:hover {
+            background: #d97706;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>🔔 Audit Notification System</h1>
+            <p style="color: #6b7280; margin-bottom: 20px;">Real-time audit notifications for Gitea users</p>
+            
+            <div id="notificationPermission" class="notification-permission" style="display: none;">
+                <strong>⚠️ Enable Notifications</strong>
+                <p>Allow notifications to receive audit alerts even when this tab is in the background.</p>
+                <button onclick="requestNotificationPermission()">Enable Notifications</button>
+            </div>
+
+            <div class="status-bar">
+                <div id="statusIndicator" class="status-indicator"></div>
+                <div>
+                    <strong id="statusText">Disconnected</strong>
+                    <div style="font-size: 12px; color: #6b7280;" id="statusDetail">Enter username to connect</div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="username">Gitea Username</label>
+                <div class="form-row">
+                    <input id="username" type="text" placeholder="e.g., jerry" autocomplete="username">
+                    <button id="toggleButton" class="btn-primary" onclick="connect()">Connect</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📤 Send Audit Request</h2>
+            <div class="input-group">
+                <label for="targetUser">Target User</label>
+                <input id="targetUser" type="text" placeholder="Username to audit" autocomplete="off">
+            </div>
+            <div class="input-group">
+                <label for="requester">Your Name</label>
+                <input id="requester" type="text" placeholder="Your name" autocomplete="name">
+            </div>
+            <div class="input-group">
+                <label for="details">Details</label>
+                <input id="details" type="text" placeholder="What needs to be audited?" autocomplete="off">
+            </div>
+            <button class="btn-success" onclick="sendAudit()">Send Audit Request</button>
+        </div>
+
+        <div class="card">
+            <h2>📋 Activity Log</h2>
+            <div id="logs" class="logs-container">
+                <div class="log-entry">
+                    <span class="log-time">[System]</span>
+                    <span class="log-info">Ready to connect</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        const toggleButton = document.getElementById('toggleButton');
+        const usernameInput = document.getElementById('username');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+        const statusDetail = document.getElementById('statusDetail');
+        
+        let isManualDisconnect = false;
+        let reconnectAttempts = 0;
+        const maxBackoff = 30000;
+        const initialBackoff = 1000;
+
+        // Check notification permission on load
+        window.onload = () => {
+            checkNotificationPermission();
+            
+            const storedUsername = localStorage.getItem('username');
+            if (storedUsername) {
+                usernameInput.value = storedUsername;
+                connect();
+            }
+        };
+
+        function checkNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                document.getElementById('notificationPermission').style.display = 'block';
+            }
+        }
+
+        function requestNotificationPermission() {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    document.getElementById('notificationPermission').style.display = 'none';
+                    logMessage('Notifications enabled', 'success');
+                }
+            });
+        }
+
+        function logMessage(msg, type = 'info') {
+            const logs = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            
+            const time = new Date().toLocaleTimeString();
+            entry.innerHTML = `<span class="log-time">[${time}]</span><span class="log-${type}">${msg}</span>`;
+            
+            logs.appendChild(entry);
+            logs.scrollTop = logs.scrollHeight;
+            console.log(`[${time}] ${msg}`);
+        }
+
+        function showNotification(title, body) {
+            if (Notification.permission === 'granted') {
+                const notification = new Notification(title, { 
+                    body: body,
+                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23667eea"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>'
+                });
+                notification.onclick = () => window.focus();
+            } else if (Notification.permission !== 'denied') {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        showNotification(title, body);
+                    }
+                });
+            }
+        }
+
+        function connect() {
+            const username = usernameInput.value.trim();
+            if (!username) {
+                logMessage('Please enter a username', 'error');
+                return;
+            }
+
+            localStorage.setItem('username', username);
+            usernameInput.disabled = true;
+            toggleButton.disabled = true;
+
+            const wsUrl = `ws://${window.location.hostname}:8080/ws?user=${encodeURIComponent(username)}`;
+            logMessage(`Connecting as ${username}...`, 'info');
+            statusDetail.textContent = 'Connecting...';
+
+            try {
+                ws = new WebSocket(wsUrl);
+            } catch (error) {
+                logMessage(`Connection failed: ${error.message}`, 'error');
+                usernameInput.disabled = false;
+                toggleButton.disabled = false;
+                return;
+            }
+
+            ws.onopen = () => {
+                statusIndicator.classList.add('connected');
+                statusText.textContent = 'Connected';
+                statusDetail.textContent = `Logged in as ${username}`;
+                logMessage('Connected successfully!', 'success');
+                
+                reconnectAttempts = 0;
+                isManualDisconnect = false;
+                
+                toggleButton.textContent = 'Disconnect';
+                toggleButton.className = 'btn-danger';
+                toggleButton.onclick = disconnect;
+                toggleButton.disabled = false;
+            };
+
+            ws.onmessage = (event) => {
+                showNotification('🔔 Audit Notification', event.data);
+                logMessage(`Received: ${event.data}`, 'success');
+            };
+
+            ws.onclose = (event) => {
+                statusIndicator.classList.remove('connected');
+                statusText.textContent = 'Disconnected';
+                statusDetail.textContent = event.reason || 'Connection closed';
+                
+                logMessage(`Disconnected (code: ${event.code})`, 'warning');
+                
+                toggleButton.textContent = 'Connect';
+                toggleButton.className = 'btn-primary';
+                toggleButton.onclick = connect;
+                toggleButton.disabled = false;
+                usernameInput.disabled = false;
+                ws = null;
+
+                if (!isManualDisconnect) {
+                    const delay = Math.min(initialBackoff * Math.pow(2, reconnectAttempts), maxBackoff);
+                    logMessage(`Reconnecting in ${delay / 1000}s... (attempt ${reconnectAttempts + 1})`, 'info');
+                    setTimeout(connect, delay);
+                    reconnectAttempts++;
+                } else {
+                    isManualDisconnect = false;
+                }
+            };
+
+            ws.onerror = (error) => {
+                logMessage('Connection error occurred', 'error');
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        function disconnect() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                isManualDisconnect = true;
+                logMessage('Disconnecting...', 'info');
+                ws.close(1000, 'User requested disconnect');
+                localStorage.removeItem('username');
+                usernameInput.value = '';
+            }
+        }
+
+        function sendAudit() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                logMessage('Connect first before sending audit requests', 'error');
+                return;
+            }
+
+            const targetUser = document.getElementById('targetUser').value.trim();
+            const requester = document.getElementById('requester').value.trim();
+            const details = document.getElementById('details').value.trim();
+
+            if (!targetUser || !requester || !details) {
+                logMessage('All fields are required', 'error');
+                return;
+            }
+
+            const data = { targetUser, requester, details };
+            
+            logMessage(`Sending audit request to ${targetUser}...`, 'info');
+
+            fetch(`http://${window.location.hostname}:8080/audit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(data => {
+                logMessage(`✅ ${data.message}`, 'success');
+                // Clear form
+                document.getElementById('targetUser').value = '';
+                document.getElementById('details').value = '';
+            })
+            .catch(err => {
+                logMessage(`❌ Error: ${err.message}`, 'error');
+            });
+        }
+    </script>
+</body>
+</html>
