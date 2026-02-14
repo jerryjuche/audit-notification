@@ -1,6 +1,6 @@
 # 🔔 Audit Notification System
 
-Real-time notification system for Gitea users to receive audit requests via WebSocket.
+Real-time notification system for Gitea users to receive audit requests via WebSocket
 
 ## Features
 
