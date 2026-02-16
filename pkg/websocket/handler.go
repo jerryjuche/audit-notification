@@ -2,6 +2,7 @@
 package websocket
 
 import (
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -39,47 +40,32 @@ var (
 func InitDB() {
 	var err error
 	
+	// Try environment variable first, then use direct connection string
+	connStr := os.Getenv("DATABASE_URL")
 	
-	// Build connection string
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	dbname := os.Getenv("DB_NAME")
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	
-	// Default values for local development
-	if host == "" {
-		host = "dpg-d69h9qjnv86c73eug1tg-a.oregon-postgres.render.com"
+	if connStr == "" {
+		// Direct connection string (works from anywhere)
+		connStr = "postgres://audit_db_dyhx_user:UKaGYfaMuffMA4Pu9JZoToFAxlzlzQc9@dpg-d69h9qjnv86c73eug1tg-a.oregon-postgres.render.com:5432/audit_db_dyhx?sslmode=require"
 	}
-	if port == "" {
-		port = "5432"
-	}
-	if dbname == "" {
-		dbname = "audit_db_dyhx"
-	}
-	if user == "" {
-		user = "audit_db_dyhx_user"
-	}
-	if password == "" {
-		password = "UKaGYfaMuffMA4Pu9JZoToFAxlzlzQc9"
-	}
-
-	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=require",
-		host, port, user, password, dbname)
 
 	db, err = sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal("❌ Failed to connect to database:", err)
 	}
 
-	if err = db.Ping(); err != nil {
+	// Set connection timeout
+	db.SetConnMaxLifetime(time.Minute * 3)
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(5)
+
+	// Try to ping with longer timeout for slow connections
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	log.Println("⏳ Connecting to PostgreSQL (may take up to 30s)...")
+	if err = db.PingContext(ctx); err != nil {
 		log.Fatal("❌ Failed to ping database:", err)
 	}
-
-	// Set connection pool settings
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(5 * time.Minute)
 
 	// Create tables
 	createTablesSQL := `
