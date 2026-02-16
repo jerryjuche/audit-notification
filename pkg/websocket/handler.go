@@ -39,6 +39,7 @@ var (
 func InitDB() {
 	var err error
 	
+	
 	// Build connection string
 	host := os.Getenv("DB_HOST")
 	port := os.Getenv("DB_PORT")
