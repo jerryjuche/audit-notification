@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/jerryjuche/audit-notification/pkg/websocket"
+	"github.com/jerryjuche/audit-notification-system/pkg/websocket"
 )
 
 func main() {

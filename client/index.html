@@ -74,6 +74,7 @@
             border-radius: 12px;
             padding: 24px;
             margin-bottom: 20px;
+            transition: border-color 0.2s;
         }
         .card:hover { border-color: var(--border-hover); }
         .card-header {
@@ -108,6 +109,7 @@
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
+            font-family: var(--font-sans);
         }
         .tab:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
         .tab.active { background: var(--accent-secondary); color: white; }
@@ -121,7 +123,7 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        input {
+        input, textarea {
             width: 100%;
             padding: 12px 16px;
             background: var(--bg-tertiary);
@@ -130,8 +132,9 @@
             color: var(--text-primary);
             font-size: 14px;
             transition: all 0.2s;
+            font-family: var(--font-sans);
         }
-        input:focus {
+        input:focus, textarea:focus {
             outline: none;
             border-color: var(--accent-primary);
             background: var(--bg-primary);
@@ -145,6 +148,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
+            font-family: var(--font-sans);
         }
         .btn-primary { background: var(--accent-secondary); color: white; }
         .btn-primary:hover:not(:disabled) {
@@ -203,6 +207,7 @@
             animation: pulse 2s infinite;
         }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .online-users {
             background: var(--bg-tertiary);
             border: 1px solid var(--border);
@@ -229,6 +234,7 @@
             background: var(--bg-tertiary);
             border: 1px solid var(--border);
             border-radius: 8px;
+            transition: all 0.2s;
         }
         .notification-icon:hover { background: var(--bg-elevated); }
         .notification-badge {
@@ -272,6 +278,7 @@
             padding: 16px;
             border-bottom: 1px solid var(--border);
             cursor: pointer;
+            transition: background 0.2s;
         }
         .notification-item:hover { background: var(--bg-tertiary); }
         .notification-item.unread {
@@ -289,6 +296,21 @@
             font-size: 14px;
             line-height: 1.5;
             word-break: break-word;
+        }
+        .reply-btn {
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: var(--accent-secondary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .reply-btn:hover {
+            background: var(--accent-primary);
+            transform: translateY(-1px);
         }
         .toast-container {
             position: fixed;
@@ -381,6 +403,7 @@
             padding: 12px 16px;
             cursor: pointer;
             border-bottom: 1px solid var(--border);
+            transition: background 0.2s;
         }
         .search-item:hover { background: var(--bg-tertiary); }
         .search-item-name {
@@ -402,6 +425,7 @@
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
+            transition: all 0.2s;
         }
         .file-label:hover { background: var(--accent-primary); transform: translateY(-1px); }
         ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -442,10 +466,6 @@
     </div>
 
     <div id="toastContainer" class="toast-container"></div>
-
-    <audio id="notificationSound" preload="auto">
-        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE=" type="audio/wav">
-    </audio>
 
     <div class="container">
         <div id="authSection">
@@ -569,6 +589,35 @@
 
             <div class="card">
                 <div class="card-header">
+                    <div class="card-title">🔊 Sound Settings</div>
+                </div>
+                <div style="padding: 16px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; text-transform: none; font-size: 14px; margin-bottom: 12px;">
+                        <input type="checkbox" id="soundEnabled" checked onchange="toggleSounds(this.checked)">
+                        <span>Enable notification sounds</span>
+                    </label>
+                    <div style="margin-bottom: 12px;">
+                        <label style="margin-bottom: 4px;">Volume</label>
+                        <input 
+                            type="range" 
+                            id="volumeSlider" 
+                            min="0" 
+                            max="100" 
+                            value="50" 
+                            onchange="updateVolume(this.value)"
+                            style="width: 100%; padding: 0;"
+                        >
+                        <span id="volumeValue" style="font-size: 12px; color: var(--text-secondary);">50%</span>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-primary btn-sm" onclick="playSound('audit')">Test Audit Sound</button>
+                        <button class="btn-success btn-sm" onclick="playSound('reply')">Test Reply Sound</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
                     <div class="card-title">📋 Activity Log</div>
                 </div>
                 <div id="logs" class="activity-log">
@@ -589,6 +638,61 @@
             ? 'ws://localhost:8080'
             : 'wss://audit-notification.onrender.com';
 
+        // Sound system
+        const SOUNDS = {
+            audit: 'https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3',
+            reply: 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3',
+            success: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'
+        };
+
+        const audioCache = {};
+        Object.keys(SOUNDS).forEach(key => {
+            audioCache[key] = new Audio(SOUNDS[key]);
+            audioCache[key].volume = 0.5;
+        });
+
+        function playSound(type = 'audit') {
+            const enabled = localStorage.getItem('soundsEnabled') !== 'false';
+            if (!enabled) return;
+            
+            try {
+                if (audioCache[type]) {
+                    audioCache[type].currentTime = 0;
+                    audioCache[type].play().catch(e => console.log('Audio play failed:', e));
+                }
+            } catch (e) {
+                console.error('Sound error:', e);
+            }
+        }
+
+        function toggleSounds(enabled) {
+            localStorage.setItem('soundsEnabled', enabled);
+            if (!enabled) {
+                Object.values(audioCache).forEach(audio => audio.pause());
+            }
+        }
+
+        function updateVolume(value) {
+            const volume = value / 100;
+            Object.values(audioCache).forEach(audio => audio.volume = volume);
+            document.getElementById('volumeValue').textContent = `${value}%`;
+            localStorage.setItem('soundVolume', value);
+        }
+
+        function loadSoundSettings() {
+            const soundsEnabled = localStorage.getItem('soundsEnabled') !== 'false';
+            const volume = localStorage.getItem('soundVolume') || 50;
+            
+            const checkbox = document.getElementById('soundEnabled');
+            const slider = document.getElementById('volumeSlider');
+            
+            if (checkbox) checkbox.checked = soundsEnabled;
+            if (slider) {
+                slider.value = volume;
+                updateVolume(volume);
+            }
+        }
+
         let ws = null;
         let currentUserData = null;
         let isManualDisconnect = false;
@@ -600,330 +704,6 @@
         let onlineUsers = [];
         let auditsSent = 0;
         let totalUsers = 0;
-
-        // Add this JavaScript section to handle replies and custom sounds
-
-// Sound URLs (using free notification sounds)
-const SOUNDS = {
-    audit: 'https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3', // iOS-like
-    reply: 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3', // Pop sound
-    success: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3' // Success
-};
-
-// Preload sounds
-const audioCache = {};
-Object.keys(SOUNDS).forEach(key => {
-    audioCache[key] = new Audio(SOUNDS[key]);
-    audioCache[key].volume = 0.5;
-});
-
-function playSound(type = 'audit') {
-    try {
-        if (audioCache[type]) {
-            audioCache[type].currentTime = 0;
-            audioCache[type].play().catch(e => console.log('Audio play failed:', e));
-        }
-    } catch (e) {
-        console.error('Sound error:', e);
-    }
-}
-
-// Enhanced notification object structure
-function addNotificationEnhanced(data) {
-    const notification = {
-        id: data.id || Date.now(),
-        message: data.message,
-        sender: data.sender,
-        time: new Date(),
-        read: false,
-        canReply: data.canReply !== false,
-        isReply: data.isReply || false,
-        replyTo: data.replyTo || null
-    };
-    
-    notifications.unshift(notification);
-    unreadCount++;
-    updateNotificationBadge();
-    updateNotificationPanelEnhanced();
-    saveNotifications();
-    
-    return notification;
-}
-
-// Enhanced notification panel with reply buttons
-function updateNotificationPanelEnhanced() {
-    const list = document.getElementById('notificationList');
-    if (notifications.length === 0) {
-        list.innerHTML = '<div style="padding: 40px 20px; text-align: center; color: var(--text-tertiary);">No notifications</div>';
-        return;
-    }
-    
-    list.innerHTML = notifications.map(n => `
-        <div class="notification-item ${n.read ? '' : 'unread'}" onclick="markAsRead(${n.id})" style="position: relative;">
-            <div class="notification-time">${formatTime(n.time)}</div>
-            <div class="notification-text">${n.message}</div>
-            ${n.canReply ? `
-                <button 
-                    class="reply-btn" 
-                    onclick="event.stopPropagation(); openReplyModal(${n.id}, '${n.sender.replace(/'/g, "\\'")}', '${n.message.replace(/'/g, "\\'")}')"
-                    style="
-                        margin-top: 8px;
-                        padding: 6px 12px;
-                        background: var(--accent-secondary);
-                        color: white;
-                        border: none;
-                        border-radius: 6px;
-                        font-size: 12px;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                    "
-                    onmouseover="this.style.background='var(--accent-primary)'"
-                    onmouseout="this.style.background='var(--accent-secondary)'"
-                >
-                    💬 Reply
-                </button>
-            ` : ''}
-            ${n.isReply ? '<span style="color: var(--accent-primary); font-size: 12px; margin-top: 4px; display: block;">↩️ This is a reply</span>' : ''}
-        </div>
-    `).join('');
-}
-
-// Reply modal
-function openReplyModal(notificationId, sender, originalMessage) {
-    const modal = document.createElement('div');
-    modal.id = 'replyModal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.7);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10001;
-        animation: fadeIn 0.2s;
-    `;
-    
-    modal.innerHTML = `
-        <div style="
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 24px;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-        ">
-            <h3 style="margin-bottom: 16px; color: var(--text-primary);">Reply to ${sender}</h3>
-            <div style="
-                background: var(--bg-tertiary);
-                padding: 12px;
-                border-radius: 8px;
-                margin-bottom: 16px;
-                color: var(--text-secondary);
-                font-size: 13px;
-                border-left: 3px solid var(--accent-primary);
-            ">
-                <strong>Original:</strong><br>${originalMessage}
-            </div>
-            <textarea 
-                id="replyTextarea" 
-                placeholder="Type your reply..."
-                style="
-                    width: 100%;
-                    min-height: 100px;
-                    padding: 12px;
-                    background: var(--bg-tertiary);
-                    border: 1px solid var(--border);
-                    border-radius: 8px;
-                    color: var(--text-primary);
-                    font-family: var(--font-sans);
-                    font-size: 14px;
-                    resize: vertical;
-                    margin-bottom: 16px;
-                "
-            ></textarea>
-            <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                <button 
-                    onclick="closeReplyModal()"
-                    style="
-                        padding: 10px 20px;
-                        background: var(--bg-tertiary);
-                        color: var(--text-secondary);
-                        border: 1px solid var(--border);
-                        border-radius: 8px;
-                        cursor: pointer;
-                    "
-                >
-                    Cancel
-                </button>
-                <button 
-                    onclick="sendReply(${notificationId}, '${sender.replace(/'/g, "\\'")}')"
-                    class="btn-success"
-                >
-                    Send Reply
-                </button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    document.getElementById('replyTextarea').focus();
-    
-    // Close on outside click
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeReplyModal();
-    });
-}
-
-function closeReplyModal() {
-    const modal = document.getElementById('replyModal');
-    if (modal) modal.remove();
-}
-
-async function sendReply(notificationId, sender) {
-    const textarea = document.getElementById('replyTextarea');
-    const replyMessage = textarea.value.trim();
-    
-    if (!replyMessage) {
-        showToast('Error', 'Reply cannot be empty', 'error', 3000);
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_URL}/reply`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                notificationId: notificationId,
-                replyMessage: replyMessage,
-                replierUsername: currentUserData.username
-            })
-        });
-        
-        if (!response.ok) throw new Error('Reply failed');
-        
-        playSound('success');
-        showToast('Success', 'Reply sent', 'success', 3000);
-        logMessage(`Reply sent to ${sender}`, 'success');
-        closeReplyModal();
-        
-        // Mark original notification as replied
-        const notification = notifications.find(n => n.id === notificationId);
-        if (notification) {
-            notification.canReply = false;
-            updateNotificationPanelEnhanced();
-            saveNotifications();
-        }
-    } catch (error) {
-        showToast('Error', 'Failed to send reply', 'error', 3000);
-        logMessage(`Reply error: ${error.message}`, 'error');
-    }
-}
-
-// Update WebSocket message handler
-function handleWebSocketMessage(event) {
-    try {
-        const data = JSON.parse(event.data);
-        
-        // Determine sound type
-        const soundType = data.isReply ? 'reply' : 'audit';
-        
-        // Play sound
-        playSound(soundType);
-        
-        // Show toast
-        const title = data.isReply ? '💬 Reply Received' : '🔔 Audit Request';
-        showToast(title, data.message, data.isReply ? 'success' : 'audit', 8000);
-        
-        // Desktop notification
-        showDesktopNotification(title, data.message);
-        
-        // Add to panel
-        addNotificationEnhanced(data);
-        
-        // Log
-        logMessage(`Received: ${data.message}`, 'success');
-    } catch (e) {
-        // Fallback for old format (plain text)
-        playSound('audit');
-        showToast('Audit Request', event.data, 'audit', 8000);
-        showDesktopNotification('🔔 Audit Request', event.data);
-        addNotificationEnhanced({
-            message: event.data,
-            sender: 'Unknown',
-            canReply: false
-        });
-        logMessage(`Received: ${event.data}`, 'success');
-    }
-}
-
-// Sound settings UI
-function createSoundSettings() {
-    const settingsHTML = `
-        <div class="card" style="margin-top: 20px;">
-            <div class="card-header">
-                <div class="card-title">🔊 Sound Settings</div>
-            </div>
-            <div style="padding: 16px;">
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="soundEnabled" checked onchange="toggleSounds(this.checked)">
-                    <span>Enable notification sounds</span>
-                </label>
-                <div style="margin-top: 12px;">
-                    <label>Volume</label>
-                    <input 
-                        type="range" 
-                        id="volumeSlider" 
-                        min="0" 
-                        max="100" 
-                        value="50" 
-                        onchange="updateVolume(this.value)"
-                        style="width: 100%;"
-                    >
-                    <span id="volumeValue" style="font-size: 12px; color: var(--text-secondary);">50%</span>
-                </div>
-                <div style="margin-top: 12px; display: flex; gap: 8px;">
-                    <button class="btn-sm" onclick="playSound('audit')">Test Audit Sound</button>
-                    <button class="btn-sm" onclick="playSound('reply')">Test Reply Sound</button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    return settingsHTML;
-}
-
-function toggleSounds(enabled) {
-    localStorage.setItem('soundsEnabled', enabled);
-    if (!enabled) {
-        Object.values(audioCache).forEach(audio => audio.pause());
-    }
-}
-
-function updateVolume(value) {
-    const volume = value / 100;
-    Object.values(audioCache).forEach(audio => audio.volume = volume);
-    document.getElementById('volumeValue').textContent = `${value}%`;
-    localStorage.setItem('soundVolume', value);
-}
-
-// Load sound settings on init
-function loadSoundSettings() {
-    const soundsEnabled = localStorage.getItem('soundsEnabled') !== 'false';
-    const volume = localStorage.getItem('soundVolume') || 50;
-    
-    const checkbox = document.getElementById('soundEnabled');
-    const slider = document.getElementById('volumeSlider');
-    
-    if (checkbox) checkbox.checked = soundsEnabled;
-    if (slider) {
-        slider.value = volume;
-        updateVolume(volume);
-    }
-}
 
         function showTab(tab, button) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -995,7 +775,6 @@ function loadSoundSettings() {
                 <button class="toast-close" onclick="this.parentElement.remove()">×</button>
             `;
             container.appendChild(toast);
-            try { document.getElementById('notificationSound').play().catch(() => {}); } catch (e) {}
             if (duration > 0) {
                 setTimeout(() => {
                     toast.style.animation = 'slideIn 0.3s ease-out reverse';
@@ -1004,8 +783,19 @@ function loadSoundSettings() {
             }
         }
 
-        function addNotification(message) {
-            notifications.unshift({ id: Date.now(), message, time: new Date(), read: false });
+        function addNotification(data) {
+            const notification = {
+                id: data.id || Date.now(),
+                message: data.message,
+                sender: data.sender || 'Unknown',
+                time: data.time || new Date(),
+                read: false,
+                canReply: data.canReply !== false,
+                isReply: data.isReply || false,
+                replyTo: data.replyTo || null
+            };
+            
+            notifications.unshift(notification);
             unreadCount++;
             updateNotificationBadge();
             updateNotificationPanel();
@@ -1028,12 +818,28 @@ function loadSoundSettings() {
                 list.innerHTML = '<div style="padding: 40px 20px; text-align: center; color: var(--text-tertiary);">No notifications</div>';
                 return;
             }
+            
             list.innerHTML = notifications.map(n => `
                 <div class="notification-item ${n.read ? '' : 'unread'}" onclick="markAsRead(${n.id})">
                     <div class="notification-time">${formatTime(n.time)}</div>
-                    <div class="notification-text">${n.message}</div>
+                    <div class="notification-text">${escapeHtml(n.message)}</div>
+                    ${n.canReply ? `
+                        <button 
+                            class="reply-btn" 
+                            onclick="event.stopPropagation(); openReplyModal(${n.id}, '${escapeHtml(n.sender)}', '${escapeHtml(n.message)}')"
+                        >
+                            💬 Reply
+                        </button>
+                    ` : ''}
+                    ${n.isReply ? '<div style="color: var(--accent-primary); font-size: 12px; margin-top: 4px;">↩️ This is a reply</div>' : ''}
                 </div>
             `).join('');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         function toggleNotificationPanel() {
@@ -1059,19 +865,21 @@ function loadSoundSettings() {
         }
 
         function clearAllNotifications() {
-            notifications = [];
-            unreadCount = 0;
-            updateNotificationBadge();
-            updateNotificationPanel();
-            saveNotifications();
+            if (confirm('Clear all notifications?')) {
+                notifications = [];
+                unreadCount = 0;
+                updateNotificationBadge();
+                updateNotificationPanel();
+                saveNotifications();
+            }
         }
 
         function formatTime(date) {
-            const diff = Math.floor((new Date() - date) / 1000);
+            const diff = Math.floor((new Date() - new Date(date)) / 1000);
             if (diff < 60) return 'Just now';
             if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
             if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-            return date.toLocaleDateString();
+            return new Date(date).toLocaleDateString();
         }
 
         function saveNotifications() {
@@ -1083,10 +891,147 @@ function loadSoundSettings() {
         function loadNotifications() {
             const stored = localStorage.getItem('notifications');
             if (stored) {
-                notifications = JSON.parse(stored).map(n => ({ ...n, time: new Date(n.time) }));
-                unreadCount = notifications.filter(n => !n.read).length;
-                updateNotificationBadge();
-                updateNotificationPanel();
+                try {
+                    notifications = JSON.parse(stored).map(n => ({ ...n, time: new Date(n.time) }));
+                    unreadCount = notifications.filter(n => !n.read).length;
+                    updateNotificationBadge();
+                    updateNotificationPanel();
+                } catch (e) {
+                    notifications = [];
+                }
+            }
+        }
+
+        function openReplyModal(notificationId, sender, originalMessage) {
+            const modal = document.createElement('div');
+            modal.id = 'replyModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10001;
+                animation: fadeIn 0.2s;
+            `;
+            
+            modal.innerHTML = `
+                <div style="
+                    background: var(--bg-secondary);
+                    border: 1px solid var(--border);
+                    border-radius: 12px;
+                    padding: 24px;
+                    max-width: 500px;
+                    width: 90%;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+                ">
+                    <h3 style="margin-bottom: 16px; color: var(--text-primary);">Reply to ${escapeHtml(sender)}</h3>
+                    <div style="
+                        background: var(--bg-tertiary);
+                        padding: 12px;
+                        border-radius: 8px;
+                        margin-bottom: 16px;
+                        color: var(--text-secondary);
+                        font-size: 13px;
+                        border-left: 3px solid var(--accent-primary);
+                    ">
+                        <strong>Original:</strong><br>${escapeHtml(originalMessage)}
+                    </div>
+                    <textarea 
+                        id="replyTextarea" 
+                        placeholder="Type your reply..."
+                        style="
+                            width: 100%;
+                            min-height: 100px;
+                            padding: 12px;
+                            background: var(--bg-tertiary);
+                            border: 1px solid var(--border);
+                            border-radius: 8px;
+                            color: var(--text-primary);
+                            font-family: var(--font-sans);
+                            font-size: 14px;
+                            resize: vertical;
+                            margin-bottom: 16px;
+                        "
+                    ></textarea>
+                    <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                        <button 
+                            onclick="closeReplyModal()"
+                            style="
+                                padding: 10px 20px;
+                                background: var(--bg-tertiary);
+                                color: var(--text-secondary);
+                                border: 1px solid var(--border);
+                                border-radius: 8px;
+                                cursor: pointer;
+                                font-family: var(--font-sans);
+                            "
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            onclick="sendReply(${notificationId}, '${escapeHtml(sender)}')"
+                            class="btn-success"
+                        >
+                            Send Reply
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            document.getElementById('replyTextarea').focus();
+            
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeReplyModal();
+            });
+        }
+
+        function closeReplyModal() {
+            const modal = document.getElementById('replyModal');
+            if (modal) modal.remove();
+        }
+
+        async function sendReply(notificationId, sender) {
+            const textarea = document.getElementById('replyTextarea');
+            const replyMessage = textarea.value.trim();
+            
+            if (!replyMessage) {
+                showToast('Error', 'Reply cannot be empty', 'error', 3000);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/reply`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        notificationId: notificationId,
+                        replyMessage: replyMessage,
+                        replierUsername: currentUserData.username
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Reply failed');
+                
+                playSound('success');
+                showToast('Success', 'Reply sent', 'success', 3000);
+                logMessage(`Reply sent to ${sender}`, 'success');
+                closeReplyModal();
+                
+                const notification = notifications.find(n => n.id === notificationId);
+                if (notification) {
+                    notification.canReply = false;
+                    updateNotificationPanel();
+                    saveNotifications();
+                }
+            } catch (error) {
+                showToast('Error', 'Failed to send reply', 'error', 3000);
+                logMessage(`Reply error: ${error.message}`, 'error');
             }
         }
 
@@ -1094,7 +1039,7 @@ function loadSoundSettings() {
             const logs = document.getElementById('logs');
             const entry = document.createElement('div');
             entry.className = `log-entry log-${type}`;
-            entry.innerHTML = `<span class="log-time">[${new Date().toLocaleTimeString()}]</span><span class="log-message">${msg}</span>`;
+            entry.innerHTML = `<span class="log-time">[${new Date().toLocaleTimeString()}]</span><span class="log-message">${escapeHtml(msg)}</span>`;
             logs.appendChild(entry);
             logs.scrollTop = logs.scrollHeight;
             if (logs.children.length > 100) logs.removeChild(logs.firstChild);
@@ -1181,6 +1126,7 @@ function loadSoundSettings() {
             logMessage(`Welcome ${currentUserData.full_name}`, 'success');
             loadNotifications();
             checkNotificationPermission();
+            loadSoundSettings();
             
             if (currentUserData.username === 'admin') {
                 document.getElementById('importCard').style.display = 'block';
@@ -1226,10 +1172,38 @@ function loadSoundSettings() {
             };
 
             ws.onmessage = (event) => {
-                showToast('Audit Request', event.data, 'audit', 8000);
-                showDesktopNotification('🔔 Audit Request', event.data);
-                addNotification(event.data);
-                logMessage(`Received: ${event.data}`, 'success');
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    const soundType = data.isReply ? 'reply' : 'audit';
+                    playSound(soundType);
+                    
+                    const title = data.isReply ? '💬 Reply Received' : '🔔 Audit Request';
+                    showToast(title, data.message, data.isReply ? 'success' : 'audit', 8000);
+                    showDesktopNotification(title, data.message);
+                    
+                    addNotification({
+                        id: data.id,
+                        message: data.message,
+                        sender: data.sender,
+                        time: new Date(),
+                        read: false,
+                        canReply: data.canReply !== false,
+                        isReply: data.isReply || false,
+                        replyTo: data.replyTo
+                    });
+                    
+                    logMessage(`Received: ${data.message}`, 'success');
+                } catch (e) {
+                    console.error('WebSocket parse error:', e);
+                    playSound('audit');
+                    showToast('Notification', event.data, 'audit', 8000);
+                    addNotification({
+                        message: event.data,
+                        sender: 'System',
+                        canReply: false
+                    });
+                }
             };
 
             ws.onclose = () => {
@@ -1300,9 +1274,9 @@ function loadSoundSettings() {
                         dropdown.innerHTML = '<div style="padding: 12px; color: var(--text-tertiary);">No users found</div>';
                     } else {
                         dropdown.innerHTML = users.map(user => `
-                            <div class="search-item" onclick="selectUser('${user.username.replace(/'/g, "\\'")}')">
-                                <div class="search-item-name">${user.fullName}</div>
-                                <div class="search-item-username">@${user.username}</div>
+                            <div class="search-item" onclick="selectUser('${escapeHtml(user.username)}')">
+                                <div class="search-item-name">${escapeHtml(user.fullName)}</div>
+                                <div class="search-item-username">@${escapeHtml(user.username)}</div>
                             </div>
                         `).join('');
                     }
