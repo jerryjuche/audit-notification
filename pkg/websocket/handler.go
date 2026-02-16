@@ -862,7 +862,7 @@ func FeedbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	_, _ = result.LastInsertId()
 
-	// Create notification message
+	// Create notification message.
 	adminMessage := fmt.Sprintf("📝 @%s (%s): %s - %s", req.Username, req.Type, req.Subject, req.Message)
 
 	// Save notification to database for tracking
