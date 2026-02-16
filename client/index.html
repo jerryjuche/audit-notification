@@ -601,6 +601,330 @@
         let auditsSent = 0;
         let totalUsers = 0;
 
+        // Add this JavaScript section to handle replies and custom sounds
+
+// Sound URLs (using free notification sounds)
+const SOUNDS = {
+    audit: 'https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3', // iOS-like
+    reply: 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3', // Pop sound
+    success: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3' // Success
+};
+
+// Preload sounds
+const audioCache = {};
+Object.keys(SOUNDS).forEach(key => {
+    audioCache[key] = new Audio(SOUNDS[key]);
+    audioCache[key].volume = 0.5;
+});
+
+function playSound(type = 'audit') {
+    try {
+        if (audioCache[type]) {
+            audioCache[type].currentTime = 0;
+            audioCache[type].play().catch(e => console.log('Audio play failed:', e));
+        }
+    } catch (e) {
+        console.error('Sound error:', e);
+    }
+}
+
+// Enhanced notification object structure
+function addNotificationEnhanced(data) {
+    const notification = {
+        id: data.id || Date.now(),
+        message: data.message,
+        sender: data.sender,
+        time: new Date(),
+        read: false,
+        canReply: data.canReply !== false,
+        isReply: data.isReply || false,
+        replyTo: data.replyTo || null
+    };
+    
+    notifications.unshift(notification);
+    unreadCount++;
+    updateNotificationBadge();
+    updateNotificationPanelEnhanced();
+    saveNotifications();
+    
+    return notification;
+}
+
+// Enhanced notification panel with reply buttons
+function updateNotificationPanelEnhanced() {
+    const list = document.getElementById('notificationList');
+    if (notifications.length === 0) {
+        list.innerHTML = '<div style="padding: 40px 20px; text-align: center; color: var(--text-tertiary);">No notifications</div>';
+        return;
+    }
+    
+    list.innerHTML = notifications.map(n => `
+        <div class="notification-item ${n.read ? '' : 'unread'}" onclick="markAsRead(${n.id})" style="position: relative;">
+            <div class="notification-time">${formatTime(n.time)}</div>
+            <div class="notification-text">${n.message}</div>
+            ${n.canReply ? `
+                <button 
+                    class="reply-btn" 
+                    onclick="event.stopPropagation(); openReplyModal(${n.id}, '${n.sender.replace(/'/g, "\\'")}', '${n.message.replace(/'/g, "\\'")}')"
+                    style="
+                        margin-top: 8px;
+                        padding: 6px 12px;
+                        background: var(--accent-secondary);
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        font-size: 12px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    "
+                    onmouseover="this.style.background='var(--accent-primary)'"
+                    onmouseout="this.style.background='var(--accent-secondary)'"
+                >
+                    💬 Reply
+                </button>
+            ` : ''}
+            ${n.isReply ? '<span style="color: var(--accent-primary); font-size: 12px; margin-top: 4px; display: block;">↩️ This is a reply</span>' : ''}
+        </div>
+    `).join('');
+}
+
+// Reply modal
+function openReplyModal(notificationId, sender, originalMessage) {
+    const modal = document.createElement('div');
+    modal.id = 'replyModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10001;
+        animation: fadeIn 0.2s;
+    `;
+    
+    modal.innerHTML = `
+        <div style="
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        ">
+            <h3 style="margin-bottom: 16px; color: var(--text-primary);">Reply to ${sender}</h3>
+            <div style="
+                background: var(--bg-tertiary);
+                padding: 12px;
+                border-radius: 8px;
+                margin-bottom: 16px;
+                color: var(--text-secondary);
+                font-size: 13px;
+                border-left: 3px solid var(--accent-primary);
+            ">
+                <strong>Original:</strong><br>${originalMessage}
+            </div>
+            <textarea 
+                id="replyTextarea" 
+                placeholder="Type your reply..."
+                style="
+                    width: 100%;
+                    min-height: 100px;
+                    padding: 12px;
+                    background: var(--bg-tertiary);
+                    border: 1px solid var(--border);
+                    border-radius: 8px;
+                    color: var(--text-primary);
+                    font-family: var(--font-sans);
+                    font-size: 14px;
+                    resize: vertical;
+                    margin-bottom: 16px;
+                "
+            ></textarea>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button 
+                    onclick="closeReplyModal()"
+                    style="
+                        padding: 10px 20px;
+                        background: var(--bg-tertiary);
+                        color: var(--text-secondary);
+                        border: 1px solid var(--border);
+                        border-radius: 8px;
+                        cursor: pointer;
+                    "
+                >
+                    Cancel
+                </button>
+                <button 
+                    onclick="sendReply(${notificationId}, '${sender.replace(/'/g, "\\'")}')"
+                    class="btn-success"
+                >
+                    Send Reply
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    document.getElementById('replyTextarea').focus();
+    
+    // Close on outside click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeReplyModal();
+    });
+}
+
+function closeReplyModal() {
+    const modal = document.getElementById('replyModal');
+    if (modal) modal.remove();
+}
+
+async function sendReply(notificationId, sender) {
+    const textarea = document.getElementById('replyTextarea');
+    const replyMessage = textarea.value.trim();
+    
+    if (!replyMessage) {
+        showToast('Error', 'Reply cannot be empty', 'error', 3000);
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/reply`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                notificationId: notificationId,
+                replyMessage: replyMessage,
+                replierUsername: currentUserData.username
+            })
+        });
+        
+        if (!response.ok) throw new Error('Reply failed');
+        
+        playSound('success');
+        showToast('Success', 'Reply sent', 'success', 3000);
+        logMessage(`Reply sent to ${sender}`, 'success');
+        closeReplyModal();
+        
+        // Mark original notification as replied
+        const notification = notifications.find(n => n.id === notificationId);
+        if (notification) {
+            notification.canReply = false;
+            updateNotificationPanelEnhanced();
+            saveNotifications();
+        }
+    } catch (error) {
+        showToast('Error', 'Failed to send reply', 'error', 3000);
+        logMessage(`Reply error: ${error.message}`, 'error');
+    }
+}
+
+// Update WebSocket message handler
+function handleWebSocketMessage(event) {
+    try {
+        const data = JSON.parse(event.data);
+        
+        // Determine sound type
+        const soundType = data.isReply ? 'reply' : 'audit';
+        
+        // Play sound
+        playSound(soundType);
+        
+        // Show toast
+        const title = data.isReply ? '💬 Reply Received' : '🔔 Audit Request';
+        showToast(title, data.message, data.isReply ? 'success' : 'audit', 8000);
+        
+        // Desktop notification
+        showDesktopNotification(title, data.message);
+        
+        // Add to panel
+        addNotificationEnhanced(data);
+        
+        // Log
+        logMessage(`Received: ${data.message}`, 'success');
+    } catch (e) {
+        // Fallback for old format (plain text)
+        playSound('audit');
+        showToast('Audit Request', event.data, 'audit', 8000);
+        showDesktopNotification('🔔 Audit Request', event.data);
+        addNotificationEnhanced({
+            message: event.data,
+            sender: 'Unknown',
+            canReply: false
+        });
+        logMessage(`Received: ${event.data}`, 'success');
+    }
+}
+
+// Sound settings UI
+function createSoundSettings() {
+    const settingsHTML = `
+        <div class="card" style="margin-top: 20px;">
+            <div class="card-header">
+                <div class="card-title">🔊 Sound Settings</div>
+            </div>
+            <div style="padding: 16px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="soundEnabled" checked onchange="toggleSounds(this.checked)">
+                    <span>Enable notification sounds</span>
+                </label>
+                <div style="margin-top: 12px;">
+                    <label>Volume</label>
+                    <input 
+                        type="range" 
+                        id="volumeSlider" 
+                        min="0" 
+                        max="100" 
+                        value="50" 
+                        onchange="updateVolume(this.value)"
+                        style="width: 100%;"
+                    >
+                    <span id="volumeValue" style="font-size: 12px; color: var(--text-secondary);">50%</span>
+                </div>
+                <div style="margin-top: 12px; display: flex; gap: 8px;">
+                    <button class="btn-sm" onclick="playSound('audit')">Test Audit Sound</button>
+                    <button class="btn-sm" onclick="playSound('reply')">Test Reply Sound</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    return settingsHTML;
+}
+
+function toggleSounds(enabled) {
+    localStorage.setItem('soundsEnabled', enabled);
+    if (!enabled) {
+        Object.values(audioCache).forEach(audio => audio.pause());
+    }
+}
+
+function updateVolume(value) {
+    const volume = value / 100;
+    Object.values(audioCache).forEach(audio => audio.volume = volume);
+    document.getElementById('volumeValue').textContent = `${value}%`;
+    localStorage.setItem('soundVolume', value);
+}
+
+// Load sound settings on init
+function loadSoundSettings() {
+    const soundsEnabled = localStorage.getItem('soundsEnabled') !== 'false';
+    const volume = localStorage.getItem('soundVolume') || 50;
+    
+    const checkbox = document.getElementById('soundEnabled');
+    const slider = document.getElementById('volumeSlider');
+    
+    if (checkbox) checkbox.checked = soundsEnabled;
+    if (slider) {
+        slider.value = volume;
+        updateVolume(volume);
+    }
+}
+
         function showTab(tab, button) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             if (button) button.classList.add('active');

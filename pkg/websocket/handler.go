@@ -75,15 +75,21 @@ func InitDB() {
 	CREATE TABLE IF NOT EXISTS notifications (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		target TEXT NOT NULL,
+		sender TEXT NOT NULL,
 		message TEXT NOT NULL,
+		reply_to INTEGER DEFAULT NULL,
 		timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
 		delivered BOOLEAN DEFAULT 0,
-		FOREIGN KEY (target) REFERENCES users(username)
+		read BOOLEAN DEFAULT 0,
+		FOREIGN KEY (target) REFERENCES users(username),
+		FOREIGN KEY (sender) REFERENCES users(username),
+		FOREIGN KEY (reply_to) REFERENCES notifications(id)
 	);
 	
 	CREATE INDEX IF NOT EXISTS idx_target_delivered ON notifications(target, delivered);
 	CREATE INDEX IF NOT EXISTS idx_username ON users(username);
 	CREATE INDEX IF NOT EXISTS idx_email ON users(email);
+	CREATE INDEX IF NOT EXISTS idx_reply_to ON notifications(reply_to);
 	`
 
 	_, err = db.Exec(createTablesSQL)
@@ -371,7 +377,7 @@ func pingRoutine(conn *websocket.Conn, username string, stop chan struct{}) {
 func sendQueuedNotifications(conn *websocket.Conn, username string) error {
 	dbMutex.Lock()
 	rows, err := db.Query(
-		"SELECT id, message FROM notifications WHERE target = ? AND delivered = 0 ORDER BY timestamp ASC",
+		"SELECT id, sender, message, reply_to FROM notifications WHERE target = ? AND delivered = 0 ORDER BY timestamp ASC",
 		username,
 	)
 	if err != nil {
@@ -380,16 +386,20 @@ func sendQueuedNotifications(conn *websocket.Conn, username string) error {
 	}
 
 	var notifications []struct {
-		ID      int
+		ID      int64
+		Sender  string
 		Message string
+		ReplyTo sql.NullInt64
 	}
 
 	for rows.Next() {
 		var n struct {
-			ID      int
+			ID      int64
+			Sender  string
 			Message string
+			ReplyTo sql.NullInt64
 		}
-		if err := rows.Scan(&n.ID, &n.Message); err != nil {
+		if err := rows.Scan(&n.ID, &n.Sender, &n.Message, &n.ReplyTo); err != nil {
 			log.Printf("❌ Scan error: %v", err)
 			continue
 		}
@@ -400,7 +410,21 @@ func sendQueuedNotifications(conn *websocket.Conn, username string) error {
 
 	count := 0
 	for _, n := range notifications {
-		if err := conn.WriteMessage(websocket.TextMessage, []byte(n.Message)); err != nil {
+		payload := map[string]interface{}{
+			"id":       n.ID,
+			"message":  n.Message,
+			"sender":   n.Sender,
+			"canReply": !n.ReplyTo.Valid,
+			"isReply":  n.ReplyTo.Valid,
+		}
+
+		if n.ReplyTo.Valid {
+			payload["replyTo"] = n.ReplyTo.Int64
+		}
+
+		jsonData, _ := json.Marshal(payload)
+
+		if err := conn.WriteMessage(websocket.TextMessage, jsonData); err != nil {
 			return fmt.Errorf("send error: %w", err)
 		}
 
@@ -467,13 +491,34 @@ func AuditHandler(w http.ResponseWriter, r *http.Request) {
 	conn, exists := connections[req.TargetUser]
 	mu.RUnlock()
 
+	// Save to database first (for reply tracking)
+	dbMutex.Lock()
+	result, err := db.Exec(
+		"INSERT INTO notifications (target, sender, message) VALUES (?, ?, ?)",
+		req.TargetUser, req.Requester, message,
+	)
+	dbMutex.Unlock()
+
+	if err != nil {
+		log.Printf("❌ DB insert error: %v", err)
+		http.Error(w, "Failed to save notification", http.StatusInternalServerError)
+		return
+	}
+
+	notificationID, _ := result.LastInsertId()
+
 	if exists {
-		if err := conn.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
+		// Send with notification ID for reply tracking
+		notifPayload := map[string]interface{}{
+			"id":       notificationID,
+			"message":  message,
+			"sender":   req.Requester,
+			"canReply": true,
+		}
+		jsonData, _ := json.Marshal(notifPayload)
+
+		if err := conn.WriteMessage(websocket.TextMessage, jsonData); err != nil {
 			log.Printf("❌ Send error to %s: %v", req.TargetUser, err)
-			if err := queueNotification(req.TargetUser, message); err != nil {
-				http.Error(w, "Failed to queue notification", http.StatusInternalServerError)
-				return
-			}
 			w.WriteHeader(http.StatusAccepted)
 			json.NewEncoder(w).Encode(map[string]string{
 				"status":  "queued",
@@ -482,6 +527,11 @@ func AuditHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Mark as delivered
+		dbMutex.Lock()
+		db.Exec("UPDATE notifications SET delivered = 1 WHERE id = ?", notificationID)
+		dbMutex.Unlock()
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{
@@ -489,11 +539,6 @@ func AuditHandler(w http.ResponseWriter, r *http.Request) {
 			"message": "Notification sent successfully",
 		})
 		log.Printf("✅ Notification sent to %s from %s", req.TargetUser, req.Requester)
-		return
-	}
-
-	if err := queueNotification(req.TargetUser, message); err != nil {
-		http.Error(w, "Failed to queue notification", http.StatusInternalServerError)
 		return
 	}
 
@@ -512,14 +557,112 @@ func queueNotification(target, message string) error {
 	defer dbMutex.Unlock()
 
 	_, err := db.Exec(
-		"INSERT INTO notifications (target, message) VALUES (?, ?)",
-		target, message,
+		"INSERT INTO notifications (target, sender, message) VALUES (?, ?, ?)",
+		target, "system", message,
 	)
 	if err != nil {
 		log.Printf("❌ DB insert error: %v", err)
 		return fmt.Errorf("database error: %w", err)
 	}
 	return nil
+}
+
+// ReplyRequest represents a reply to an audit notification
+type ReplyRequest struct {
+	NotificationID  int64  `json:"notificationId"`
+	ReplyMessage    string `json:"replyMessage"`
+	ReplierUsername string `json:"replierUsername"`
+}
+
+// ReplyHandler handles replies to audit notifications
+func ReplyHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req ReplyRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if req.NotificationID == 0 || req.ReplyMessage == "" || req.ReplierUsername == "" {
+		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	// Get original notification sender
+	var originalSender string
+	err := db.QueryRow(
+		"SELECT sender FROM notifications WHERE id = ?",
+		req.NotificationID,
+	).Scan(&originalSender)
+
+	if err != nil {
+		http.Error(w, "Original notification not found", http.StatusNotFound)
+		return
+	}
+
+	// Create reply message
+	replyMsg := fmt.Sprintf("💬 Reply from %s: %s", req.ReplierUsername, req.ReplyMessage)
+
+	// Save reply to database
+	dbMutex.Lock()
+	result, err := db.Exec(
+		"INSERT INTO notifications (target, sender, message, reply_to) VALUES (?, ?, ?, ?)",
+		originalSender, req.ReplierUsername, replyMsg, req.NotificationID,
+	)
+	dbMutex.Unlock()
+
+	if err != nil {
+		log.Printf("❌ Reply insert error: %v", err)
+		http.Error(w, "Failed to save reply", http.StatusInternalServerError)
+		return
+	}
+
+	replyID, _ := result.LastInsertId()
+
+	// Send reply to original sender
+	mu.RLock()
+	conn, exists := connections[originalSender]
+	mu.RUnlock()
+
+	if exists {
+		replyPayload := map[string]interface{}{
+			"id":      replyID,
+			"message": replyMsg,
+			"sender":  req.ReplierUsername,
+			"replyTo": req.NotificationID,
+			"isReply": true,
+		}
+		jsonData, _ := json.Marshal(replyPayload)
+
+		if err := conn.WriteMessage(websocket.TextMessage, jsonData); err != nil {
+			log.Printf("❌ Reply send error to %s: %v", originalSender, err)
+		} else {
+			dbMutex.Lock()
+			db.Exec("UPDATE notifications SET delivered = 1 WHERE id = ?", replyID)
+			dbMutex.Unlock()
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "sent",
+		"message": "Reply sent successfully",
+	})
+	log.Printf("✅ Reply sent from %s to %s", req.ReplierUsername, originalSender)
 }
 
 // GetOnlineUsers returns list of currently connected usernames

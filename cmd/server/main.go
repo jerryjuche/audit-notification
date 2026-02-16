@@ -31,6 +31,7 @@ func main() {
 	
 	// Audit request endpoint
 	http.HandleFunc("/audit", websocket.AuditHandler)
+	http.HandleFunc("/reply", websocket.ReplyHandler)
 	
 	// Online users endpoint
 	http.HandleFunc("/online", websocket.OnlineUsersHandler)
