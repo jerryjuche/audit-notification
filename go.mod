@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/gorilla/websocket v1.5.1
-	github.com/mattn/go-sqlite3 v1.14.18
+	github.com/lib/pq v1.11.2
 	github.com/xuri/excelize/v2 v2.8.1
 )
 

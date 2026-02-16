@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/lib/pq"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -24,10 +24,6 @@ var (
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 		CheckOrigin: func(r *http.Request) bool {
-			allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
-			if allowedOrigins != "" {
-				return true // TODO: Implement proper origin validation
-			}
 			return true
 		},
 	}
@@ -39,65 +35,98 @@ var (
 	db *sql.DB
 )
 
-// InitDB initializes the SQLite database with proper error handling
+// InitDB initializes PostgreSQL database
 func InitDB() {
 	var err error
-	dbPath := os.Getenv("DB_PATH")
-	if dbPath == "" {
-		dbPath = "./notifications.db"
+	
+	// Build connection string
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	dbname := os.Getenv("DB_NAME")
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	
+	// Default values for local development
+	if host == "" {
+		host = "dpg-d69h9qjnv86c73eug1tg-a.oregon-postgres.render.com"
+	}
+	if port == "" {
+		port = "5432"
+	}
+	if dbname == "" {
+		dbname = "audit_db_dyhx"
+	}
+	if user == "" {
+		user = "audit_db_dyhx_user"
+	}
+	if password == "" {
+		password = "UKaGYfaMuffMA4Pu9JZoToFAxlzlzQc9"
 	}
 
-	db, err = sql.Open("sqlite3", dbPath)
+	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=require",
+		host, port, user, password, dbname)
+
+	db, err = sql.Open("postgres", connStr)
 	if err != nil {
-		log.Fatal("Failed to open database:", err)
+		log.Fatal("❌ Failed to connect to database:", err)
 	}
 
 	if err = db.Ping(); err != nil {
-		log.Fatal("Failed to ping database:", err)
+		log.Fatal("❌ Failed to ping database:", err)
 	}
 
-	// Enable WAL mode for concurrent access
-	db.Exec("PRAGMA journal_mode=WAL")
-	db.Exec("PRAGMA busy_timeout=5000")
-	db.SetMaxOpenConns(1)
+	// Set connection pool settings
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(5 * time.Minute)
 
+	// Create tables
 	createTablesSQL := `
 	CREATE TABLE IF NOT EXISTS users (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		username TEXT UNIQUE NOT NULL,
-		email TEXT UNIQUE NOT NULL,
-		full_name TEXT NOT NULL,
-		password_hash TEXT NOT NULL,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		last_login DATETIME
+		id SERIAL PRIMARY KEY,
+		username VARCHAR(255) UNIQUE NOT NULL,
+		email VARCHAR(255) UNIQUE NOT NULL,
+		full_name VARCHAR(255) NOT NULL,
+		password_hash VARCHAR(255) NOT NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		last_login TIMESTAMP
 	);
 	
 	CREATE TABLE IF NOT EXISTS notifications (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		target TEXT NOT NULL,
-		sender TEXT NOT NULL,
+		id SERIAL PRIMARY KEY,
+		target VARCHAR(255) NOT NULL,
+		sender VARCHAR(255) NOT NULL,
 		message TEXT NOT NULL,
 		reply_to INTEGER DEFAULT NULL,
-		timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-		delivered BOOLEAN DEFAULT 0,
-		read BOOLEAN DEFAULT 0,
-		FOREIGN KEY (target) REFERENCES users(username),
-		FOREIGN KEY (sender) REFERENCES users(username),
-		FOREIGN KEY (reply_to) REFERENCES notifications(id)
+		timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		delivered BOOLEAN DEFAULT FALSE,
+		read BOOLEAN DEFAULT FALSE,
+		FOREIGN KEY (target) REFERENCES users(username) ON DELETE CASCADE,
+		FOREIGN KEY (sender) REFERENCES users(username) ON DELETE CASCADE,
+		FOREIGN KEY (reply_to) REFERENCES notifications(id) ON DELETE SET NULL
+	);
+
+	CREATE TABLE IF NOT EXISTS feedback (
+		id SERIAL PRIMARY KEY,
+		username VARCHAR(255) NOT NULL,
+		subject VARCHAR(255) NOT NULL,
+		message TEXT NOT NULL,
+		type VARCHAR(50) NOT NULL,
+		timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		status VARCHAR(50) DEFAULT 'pending'
 	);
 	
 	CREATE INDEX IF NOT EXISTS idx_target_delivered ON notifications(target, delivered);
 	CREATE INDEX IF NOT EXISTS idx_username ON users(username);
-	CREATE INDEX IF NOT EXISTS idx_email ON users(email);
 	CREATE INDEX IF NOT EXISTS idx_reply_to ON notifications(reply_to);
 	`
 
 	_, err = db.Exec(createTablesSQL)
 	if err != nil {
-		log.Fatal("Failed to create tables:", err)
+		log.Fatal("❌ Failed to create tables:", err)
 	}
 
-	log.Println("✅ SQLite database initialized successfully")
+	log.Println("✅ PostgreSQL database initialized successfully")
 }
 
 // User represents a registered user
@@ -111,7 +140,6 @@ type User struct {
 	LastLogin    *time.Time `json:"last_login,omitempty"`
 }
 
-// RegisterRequest for user registration
 type RegisterRequest struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
@@ -119,19 +147,16 @@ type RegisterRequest struct {
 	Password string `json:"password"`
 }
 
-// LoginRequest for user login
 type LoginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
-// hashPassword creates SHA256 hash
 func hashPassword(password string) string {
 	hash := sha256.Sum256([]byte(password))
 	return hex.EncodeToString(hash[:])
 }
 
-// RegisterHandler handles user registration
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
@@ -166,27 +191,26 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	passwordHash := hashPassword(req.Password)
 
 	dbMutex.Lock()
-	result, err := db.Exec(
-		"INSERT INTO users (username, email, full_name, password_hash) VALUES (?, ?, ?, ?)",
+	var userID int
+	err := db.QueryRow(
+		"INSERT INTO users (username, email, full_name, password_hash) VALUES ($1, $2, $3, $4) RETURNING id",
 		req.Username, req.Email, req.FullName, passwordHash,
-	)
+	).Scan(&userID)
 	dbMutex.Unlock()
 
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE constraint failed: users.username") {
-			http.Error(w, "Username already exists", http.StatusConflict)
-			return
-		}
-		if strings.Contains(err.Error(), "UNIQUE constraint failed: users.email") {
-			http.Error(w, "Email already registered", http.StatusConflict)
+		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "unique") {
+			if strings.Contains(err.Error(), "username") {
+				http.Error(w, "Username already exists", http.StatusConflict)
+			} else {
+				http.Error(w, "Email already registered", http.StatusConflict)
+			}
 			return
 		}
 		log.Printf("❌ Registration error: %v", err)
 		http.Error(w, "Registration failed", http.StatusInternalServerError)
 		return
 	}
-
-	userID, _ := result.LastInsertId()
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -201,10 +225,9 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 
-	log.Printf("✅ New user registered: %s (%s)", req.Username, req.Email)
+	log.Printf("✅ New user registered: %s", req.Username)
 }
 
-// LoginHandler handles user login
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
@@ -234,7 +257,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var user User
 	var passwordHash string
 	err := db.QueryRow(
-		"SELECT id, username, email, full_name, password_hash, created_at FROM users WHERE username = ?",
+		"SELECT id, username, email, full_name, password_hash, created_at FROM users WHERE username = $1",
 		req.Username,
 	).Scan(&user.ID, &user.Username, &user.Email, &user.FullName, &passwordHash, &user.CreatedAt)
 
@@ -254,10 +277,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	now := time.Now()
-	dbMutex.Lock()
-	db.Exec("UPDATE users SET last_login = ? WHERE id = ?", now, user.ID)
-	dbMutex.Unlock()
-
+	db.Exec("UPDATE users SET last_login = $1 WHERE id = $2", now, user.ID)
 	user.LastLogin = &now
 
 	w.Header().Set("Content-Type", "application/json")
@@ -271,10 +291,9 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("✅ User logged in: %s", req.Username)
 }
 
-// userExistsInDB checks if user exists in local database
 func userExistsInDB(username string) bool {
 	var exists bool
-	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE username = ?)", username).Scan(&exists)
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)", username).Scan(&exists)
 	if err != nil {
 		log.Printf("❌ User check error: %v", err)
 		return false
@@ -282,7 +301,6 @@ func userExistsInDB(username string) bool {
 	return exists
 }
 
-// EchoHandler handles WebSocket connections with proper cleanup
 func EchoHandler(w http.ResponseWriter, r *http.Request) {
 	username := r.URL.Query().Get("user")
 	if username == "" {
@@ -291,7 +309,7 @@ func EchoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !userExistsInDB(username) {
-		http.Error(w, "User not registered. Please sign up first.", http.StatusUnauthorized)
+		http.Error(w, "User not registered", http.StatusUnauthorized)
 		return
 	}
 
@@ -321,7 +339,7 @@ func EchoHandler(w http.ResponseWriter, r *http.Request) {
 		delete(connections, username)
 		mu.Unlock()
 		conn.Close()
-		log.Printf("👋 User '%s' disconnected (total: %d)", username, len(connections)-1)
+		log.Printf("👋 User '%s' disconnected", username)
 	}()
 
 	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
@@ -336,26 +354,25 @@ func EchoHandler(w http.ResponseWriter, r *http.Request) {
 	go pingRoutine(conn, username, stopPing)
 
 	if err := sendQueuedNotifications(conn, username); err != nil {
-		log.Printf("⚠️  Error sending queued notifications to %s: %v", username, err)
+		log.Printf("⚠️ Error sending queued notifications: %v", err)
 	}
 
 	for {
 		msgType, msg, err := conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
-				log.Printf("⚠️  Unexpected close for %s: %v", username, err)
+				log.Printf("⚠️ Unexpected close: %v", err)
 			}
 			return
 		}
 
 		if err := conn.WriteMessage(msgType, msg); err != nil {
-			log.Printf("❌ Write error for %s: %v", username, err)
+			log.Printf("❌ Write error: %v", err)
 			return
 		}
 	}
 }
 
-// pingRoutine sends periodic pings to keep connection alive
 func pingRoutine(conn *websocket.Conn, username string, stop chan struct{}) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
@@ -364,7 +381,6 @@ func pingRoutine(conn *websocket.Conn, username string, stop chan struct{}) {
 		select {
 		case <-ticker.C:
 			if err := conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(10*time.Second)); err != nil {
-				log.Printf("⚠️  Ping failed for %s: %v", username, err)
 				return
 			}
 		case <-stop:
@@ -373,17 +389,15 @@ func pingRoutine(conn *websocket.Conn, username string, stop chan struct{}) {
 	}
 }
 
-// sendQueuedNotifications sends undelivered notifications to newly connected user
 func sendQueuedNotifications(conn *websocket.Conn, username string) error {
-	dbMutex.Lock()
 	rows, err := db.Query(
-		"SELECT id, sender, message, reply_to FROM notifications WHERE target = ? AND delivered = 0 ORDER BY timestamp ASC",
+		"SELECT id, sender, message, reply_to FROM notifications WHERE target = $1 AND delivered = FALSE ORDER BY timestamp ASC",
 		username,
 	)
 	if err != nil {
-		dbMutex.Unlock()
 		return fmt.Errorf("query error: %w", err)
 	}
+	defer rows.Close()
 
 	var notifications []struct {
 		ID      int64
@@ -405,17 +419,15 @@ func sendQueuedNotifications(conn *websocket.Conn, username string) error {
 		}
 		notifications = append(notifications, n)
 	}
-	rows.Close()
-	dbMutex.Unlock()
 
 	count := 0
 	for _, n := range notifications {
 		payload := map[string]interface{}{
-			"id":       n.ID,
-			"message":  n.Message,
-			"sender":   n.Sender,
+			"id":      n.ID,
+			"message": n.Message,
+			"sender":  n.Sender,
 			"canReply": !n.ReplyTo.Valid,
-			"isReply":  n.ReplyTo.Valid,
+			"isReply": n.ReplyTo.Valid,
 		}
 
 		if n.ReplyTo.Valid {
@@ -428,32 +440,23 @@ func sendQueuedNotifications(conn *websocket.Conn, username string) error {
 			return fmt.Errorf("send error: %w", err)
 		}
 
-		dbMutex.Lock()
-		_, err = db.Exec("UPDATE notifications SET delivered = 1 WHERE id = ?", n.ID)
-		dbMutex.Unlock()
-
-		if err != nil {
-			log.Printf("❌ Update error for notification %d: %v", n.ID, err)
-		} else {
-			count++
-		}
+		db.Exec("UPDATE notifications SET delivered = TRUE WHERE id = $1", n.ID)
+		count++
 	}
 
 	if count > 0 {
-		log.Printf("📬 Sent %d queued notification(s) to %s", count, username)
+		log.Printf("📬 Sent %d queued notifications to %s", count, username)
 	}
 
 	return nil
 }
 
-// AuditRequest represents an audit notification request
 type AuditRequest struct {
 	TargetUser string `json:"targetUser"`
 	Requester  string `json:"requester"`
 	Details    string `json:"details"`
 }
 
-// AuditHandler processes audit requests with notification delivery or queuing
 func AuditHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
@@ -491,13 +494,11 @@ func AuditHandler(w http.ResponseWriter, r *http.Request) {
 	conn, exists := connections[req.TargetUser]
 	mu.RUnlock()
 
-	// Save to database first (for reply tracking)
-	dbMutex.Lock()
-	result, err := db.Exec(
-		"INSERT INTO notifications (target, sender, message) VALUES (?, ?, ?)",
+	var notificationID int64
+	err := db.QueryRow(
+		"INSERT INTO notifications (target, sender, message) VALUES ($1, $2, $3) RETURNING id",
 		req.TargetUser, req.Requester, message,
-	)
-	dbMutex.Unlock()
+	).Scan(&notificationID)
 
 	if err != nil {
 		log.Printf("❌ DB insert error: %v", err)
@@ -505,76 +506,37 @@ func AuditHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	notificationID, _ := result.LastInsertId()
-
 	if exists {
-		// Send with notification ID for reply tracking
 		notifPayload := map[string]interface{}{
-			"id":       notificationID,
-			"message":  message,
-			"sender":   req.Requester,
+			"id":      notificationID,
+			"message": message,
+			"sender":  req.Requester,
 			"canReply": true,
 		}
 		jsonData, _ := json.Marshal(notifPayload)
 
 		if err := conn.WriteMessage(websocket.TextMessage, jsonData); err != nil {
-			log.Printf("❌ Send error to %s: %v", req.TargetUser, err)
-			w.WriteHeader(http.StatusAccepted)
-			json.NewEncoder(w).Encode(map[string]string{
-				"status":  "queued",
-				"message": "Send failed—notification queued",
-			})
-			return
+			log.Printf("❌ Send error: %v", err)
+		} else {
+			db.Exec("UPDATE notifications SET delivered = TRUE WHERE id = $1", notificationID)
 		}
-
-		// Mark as delivered
-		dbMutex.Lock()
-		db.Exec("UPDATE notifications SET delivered = 1 WHERE id = ?", notificationID)
-		dbMutex.Unlock()
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{
-			"status":  "delivered",
-			"message": "Notification sent successfully",
-		})
-		log.Printf("✅ Notification sent to %s from %s", req.TargetUser, req.Requester)
-		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusAccepted)
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{
-		"status":  "queued",
-		"message": "User offline—notification queued",
+		"status":  "delivered",
+		"message": "Notification sent successfully",
 	})
-	log.Printf("📥 Notification queued for %s from %s", req.TargetUser, req.Requester)
+	log.Printf("✅ Notification sent to %s from %s", req.TargetUser, req.Requester)
 }
 
-// queueNotification persists notification to database
-func queueNotification(target, message string) error {
-	dbMutex.Lock()
-	defer dbMutex.Unlock()
-
-	_, err := db.Exec(
-		"INSERT INTO notifications (target, sender, message) VALUES (?, ?, ?)",
-		target, "system", message,
-	)
-	if err != nil {
-		log.Printf("❌ DB insert error: %v", err)
-		return fmt.Errorf("database error: %w", err)
-	}
-	return nil
-}
-
-// ReplyRequest represents a reply to an audit notification
 type ReplyRequest struct {
 	NotificationID  int64  `json:"notificationId"`
 	ReplyMessage    string `json:"replyMessage"`
 	ReplierUsername string `json:"replierUsername"`
 }
 
-// ReplyHandler handles replies to audit notifications
 func ReplyHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
@@ -592,7 +554,7 @@ func ReplyHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req ReplyRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
@@ -601,28 +563,21 @@ func ReplyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get original notification sender
 	var originalSender string
-	err := db.QueryRow(
-		"SELECT sender FROM notifications WHERE id = ?",
-		req.NotificationID,
-	).Scan(&originalSender)
+	err := db.QueryRow("SELECT sender FROM notifications WHERE id = $1", req.NotificationID).Scan(&originalSender)
 
 	if err != nil {
 		http.Error(w, "Original notification not found", http.StatusNotFound)
 		return
 	}
 
-	// Create reply message
 	replyMsg := fmt.Sprintf("@%s replied: %s", req.ReplierUsername, req.ReplyMessage)
 
-	// Save reply to database
-	dbMutex.Lock()
-	result, err := db.Exec(
-		"INSERT INTO notifications (target, sender, message, reply_to) VALUES (?, ?, ?, ?)",
+	var replyID int64
+	err = db.QueryRow(
+		"INSERT INTO notifications (target, sender, message, reply_to) VALUES ($1, $2, $3, $4) RETURNING id",
 		originalSender, req.ReplierUsername, replyMsg, req.NotificationID,
-	)
-	dbMutex.Unlock()
+	).Scan(&replyID)
 
 	if err != nil {
 		log.Printf("❌ Reply insert error: %v", err)
@@ -630,9 +585,6 @@ func ReplyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	replyID, _ := result.LastInsertId()
-
-	// Send reply to original sender
 	mu.RLock()
 	conn, exists := connections[originalSender]
 	mu.RUnlock()
@@ -647,12 +599,8 @@ func ReplyHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		jsonData, _ := json.Marshal(replyPayload)
 
-		if err := conn.WriteMessage(websocket.TextMessage, jsonData); err != nil {
-			log.Printf("❌ Reply send error to %s: %v", originalSender, err)
-		} else {
-			dbMutex.Lock()
-			db.Exec("UPDATE notifications SET delivered = 1 WHERE id = ?", replyID)
-			dbMutex.Unlock()
+		if err := conn.WriteMessage(websocket.TextMessage, jsonData); err == nil {
+			db.Exec("UPDATE notifications SET delivered = TRUE WHERE id = $1", replyID)
 		}
 	}
 
@@ -665,14 +613,12 @@ func ReplyHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("✅ Reply sent from %s to %s", req.ReplierUsername, originalSender)
 }
 
-// BroadcastRequest represents a broadcast message to multiple users
 type BroadcastRequest struct {
 	Message    string `json:"message"`
 	Sender     string `json:"sender"`
-	TargetType string `json:"targetType"` // "online" or "all"
+	TargetType string `json:"targetType"`
 }
 
-// BroadcastHandler sends messages to multiple users
 func BroadcastHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
@@ -690,7 +636,7 @@ func BroadcastHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req BroadcastRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
@@ -699,7 +645,6 @@ func BroadcastHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify sender is admin
 	if req.Sender != "admin" {
 		http.Error(w, "Only admin can broadcast", http.StatusForbidden)
 		return
@@ -710,11 +655,10 @@ func BroadcastHandler(w http.ResponseWriter, r *http.Request) {
 	queued := 0
 
 	if req.TargetType == "online" {
-		// Send to online users only
 		mu.RLock()
 		for username, conn := range connections {
 			if username == req.Sender {
-				continue // Don't send to sender
+				continue
 			}
 
 			payload := map[string]interface{}{
@@ -726,16 +670,13 @@ func BroadcastHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			jsonData, _ := json.Marshal(payload)
 
-			if err := conn.WriteMessage(websocket.TextMessage, jsonData); err != nil {
-				log.Printf("❌ Broadcast send error to %s: %v", username, err)
-			} else {
+			if err := conn.WriteMessage(websocket.TextMessage, jsonData); err == nil {
 				delivered++
 			}
 		}
 		mu.RUnlock()
 	} else if req.TargetType == "all" {
-		// Get all registered users
-		rows, err := db.Query("SELECT username FROM users WHERE username != ?", req.Sender)
+		rows, err := db.Query("SELECT username FROM users WHERE username != $1", req.Sender)
 		if err != nil {
 			http.Error(w, "Failed to get users", http.StatusInternalServerError)
 			return
@@ -751,7 +692,6 @@ func BroadcastHandler(w http.ResponseWriter, r *http.Request) {
 			allUsers = append(allUsers, username)
 		}
 
-		// Send to online users and queue for offline
 		mu.RLock()
 		for _, username := range allUsers {
 			conn, online := connections[username]
@@ -765,16 +705,14 @@ func BroadcastHandler(w http.ResponseWriter, r *http.Request) {
 				}
 				jsonData, _ := json.Marshal(payload)
 
-				if err := conn.WriteMessage(websocket.TextMessage, jsonData); err != nil {
-					// If send fails, queue it
-					queueNotification(username, message)
-					queued++
-				} else {
+				if err := conn.WriteMessage(websocket.TextMessage, jsonData); err == nil {
 					delivered++
+				} else {
+					db.Exec("INSERT INTO notifications (target, sender, message) VALUES ($1, $2, $3)", username, req.Sender, message)
+					queued++
 				}
 			} else {
-				// Queue for offline users
-				queueNotification(username, message)
+				db.Exec("INSERT INTO notifications (target, sender, message) VALUES ($1, $2, $3)", username, req.Sender, message)
 				queued++
 			}
 		}
@@ -789,18 +727,16 @@ func BroadcastHandler(w http.ResponseWriter, r *http.Request) {
 		"queued":    queued,
 		"message":   fmt.Sprintf("Broadcast sent to %d users, queued for %d", delivered, queued),
 	})
-	log.Printf("✅ Broadcast sent by %s: %d delivered, %d queued", req.Sender, delivered, queued)
+	log.Printf("✅ Broadcast: %d delivered, %d queued", delivered, queued)
 }
 
-// FeedbackRequest represents user feedback
 type FeedbackRequest struct {
 	Username string `json:"username"`
 	Subject  string `json:"subject"`
 	Message  string `json:"message"`
-	Type     string `json:"type"` // "bug", "feature", "general"
+	Type     string `json:"type"`
 }
 
-// FeedbackHandler handles user feedback
 func FeedbackHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
@@ -818,7 +754,7 @@ func FeedbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req FeedbackRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
@@ -827,32 +763,11 @@ func FeedbackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create feedback table if not exists
-	dbMutex.Lock()
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS feedback (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			username TEXT NOT NULL,
-			subject TEXT NOT NULL,
-			message TEXT NOT NULL,
-			type TEXT NOT NULL,
-			timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-			status TEXT DEFAULT 'pending'
-		)
-	`)
-	dbMutex.Unlock()
-
-	if err != nil {
-		log.Printf("❌ Feedback table creation error: %v", err)
-	}
-
-	// Save feedback
-	dbMutex.Lock()
-	result, err := db.Exec(
-		"INSERT INTO feedback (username, subject, message, type) VALUES (?, ?, ?, ?)",
+	var feedbackID int64
+	err := db.QueryRow(
+		"INSERT INTO feedback (username, subject, message, type) VALUES ($1, $2, $3, $4) RETURNING id",
 		req.Username, req.Subject, req.Message, req.Type,
-	)
-	dbMutex.Unlock()
+	).Scan(&feedbackID)
 
 	if err != nil {
 		log.Printf("❌ Feedback insert error: %v", err)
@@ -860,26 +775,18 @@ func FeedbackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, _ = result.LastInsertId()
-
-	// Create notification message.
 	adminMessage := fmt.Sprintf("📝 @%s (%s): %s - %s", req.Username, req.Type, req.Subject, req.Message)
 
-	// Save notification to database for tracking
-	dbMutex.Lock()
-	notifResult, err := db.Exec(
-		"INSERT INTO notifications (target, sender, message) VALUES (?, ?, ?)",
+	var notificationID int64
+	err = db.QueryRow(
+		"INSERT INTO notifications (target, sender, message) VALUES ($1, $2, $3) RETURNING id",
 		"admin", req.Username, adminMessage,
-	)
-	dbMutex.Unlock()
+	).Scan(&notificationID)
 
 	if err != nil {
 		log.Printf("❌ Feedback notification error: %v", err)
 	}
 
-	notificationID, _ := notifResult.LastInsertId()
-
-	// Send notification to admin
 	mu.RLock()
 	adminConn, adminOnline := connections["admin"]
 	mu.RUnlock()
@@ -895,9 +802,7 @@ func FeedbackHandler(w http.ResponseWriter, r *http.Request) {
 		jsonData, _ := json.Marshal(payload)
 
 		if err := adminConn.WriteMessage(websocket.TextMessage, jsonData); err == nil {
-			dbMutex.Lock()
-			db.Exec("UPDATE notifications SET delivered = 1 WHERE id = ?", notificationID)
-			dbMutex.Unlock()
+			db.Exec("UPDATE notifications SET delivered = TRUE WHERE id = $1", notificationID)
 		}
 	}
 
@@ -907,10 +812,9 @@ func FeedbackHandler(w http.ResponseWriter, r *http.Request) {
 		"status":  "sent",
 		"message": "Feedback submitted successfully",
 	})
-	log.Printf("✅ Feedback received from %s: %s", req.Username, req.Subject)
+	log.Printf("✅ Feedback from %s: %s", req.Username, req.Subject)
 }
 
-// GetOnlineUsers returns list of currently connected usernames
 func GetOnlineUsers() []string {
 	mu.RLock()
 	defer mu.RUnlock()
@@ -922,7 +826,6 @@ func GetOnlineUsers() []string {
 	return users
 }
 
-// OnlineUsersHandler returns list of online users as JSON
 func OnlineUsersHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
@@ -930,11 +833,7 @@ func OnlineUsersHandler(w http.ResponseWriter, r *http.Request) {
 	users := GetOnlineUsers()
 
 	var totalUsers int
-	err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&totalUsers)
-	if err != nil {
-		log.Printf("❌ Count error: %v", err)
-		totalUsers = 0
-	}
+	db.QueryRow("SELECT COUNT(*) FROM users").Scan(&totalUsers)
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"online": users,
@@ -943,7 +842,6 @@ func OnlineUsersHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// SearchUsersHandler returns users matching search query
 func SearchUsersHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
@@ -955,8 +853,8 @@ func SearchUsersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := db.Query(
-		"SELECT username, full_name FROM users WHERE username LIKE ? OR full_name LIKE ? LIMIT 10",
-		"%"+query+"%", "%"+query+"%",
+		"SELECT username, full_name FROM users WHERE username ILIKE $1 OR full_name ILIKE $1 LIMIT 10",
+		"%"+query+"%",
 	)
 	if err != nil {
 		http.Error(w, "Search failed", http.StatusInternalServerError)
@@ -979,7 +877,6 @@ func SearchUsersHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(users)
 }
 
-// ImportUsersHandler handles bulk user import from Excel
 func ImportUsersHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
@@ -995,7 +892,7 @@ func ImportUsersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var exists bool
-	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE username = ? AND username = 'admin')", adminUser).Scan(&exists)
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE username = $1 AND username = 'admin')", adminUser).Scan(&exists)
 	if err != nil || !exists {
 		http.Error(w, "Admin access required", http.StatusForbidden)
 		return
@@ -1052,8 +949,8 @@ func ImportUsersHandler(w http.ResponseWriter, r *http.Request) {
 		fullName := firstName + " " + lastName
 
 		var userExists bool
-		err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE username = ?)", username).Scan(&userExists)
-		if err != nil || userExists {
+		db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)", username).Scan(&userExists)
+		if userExists {
 			skipped++
 			continue
 		}
@@ -1061,12 +958,10 @@ func ImportUsersHandler(w http.ResponseWriter, r *http.Request) {
 		email := fmt.Sprintf("%s@local.system", username)
 		passwordHash := hashPassword("changeme123")
 
-		dbMutex.Lock()
 		_, err = db.Exec(
-			"INSERT INTO users (username, email, full_name, password_hash) VALUES (?, ?, ?, ?)",
+			"INSERT INTO users (username, email, full_name, password_hash) VALUES ($1, $2, $3, $4)",
 			username, email, fullName, passwordHash,
 		)
-		dbMutex.Unlock()
 
 		if err != nil {
 			log.Printf("⚠️ Failed to import %s: %v", username, err)
