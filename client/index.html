@@ -587,33 +587,53 @@
                 <button class="btn-success btn-full" onclick="sendAudit()">Send Request</button>
             </div>
 
-            <div class="card">
+            <div id="broadcastCard" class="card" style="display: none;">
                 <div class="card-header">
-                    <div class="card-title">🔊 Sound Settings</div>
+                    <div class="card-title">📢 Broadcast Message</div>
                 </div>
-                <div style="padding: 16px;">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; text-transform: none; font-size: 14px; margin-bottom: 12px;">
-                        <input type="checkbox" id="soundEnabled" checked onchange="toggleSounds(this.checked)">
-                        <span>Enable notification sounds</span>
-                    </label>
-                    <div style="margin-bottom: 12px;">
-                        <label style="margin-bottom: 4px;">Volume</label>
-                        <input 
-                            type="range" 
-                            id="volumeSlider" 
-                            min="0" 
-                            max="100" 
-                            value="50" 
-                            onchange="updateVolume(this.value)"
-                            style="width: 100%; padding: 0;"
-                        >
-                        <span id="volumeValue" style="font-size: 12px; color: var(--text-secondary);">50%</span>
-                    </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn-primary btn-sm" onclick="playSound('audit')">Test Audit Sound</button>
-                        <button class="btn-success btn-sm" onclick="playSound('reply')">Test Reply Sound</button>
-                    </div>
+                <div class="input-group">
+                    <label>Target Audience</label>
+                    <select id="broadcastTarget" style="width: 100%; padding: 12px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-family: var(--font-sans); font-size: 14px;">
+                        <option value="online">Online Users Only</option>
+                        <option value="all">All Registered Users</option>
+                    </select>
                 </div>
+                <div class="input-group">
+                    <label>Broadcast Message</label>
+                    <textarea 
+                        id="broadcastMessage" 
+                        placeholder="Type your announcement..." 
+                        style="min-height: 100px; resize: vertical;"
+                    ></textarea>
+                </div>
+                <button class="btn-primary btn-full" onclick="sendBroadcast()">Send Broadcast</button>
+            </div>
+
+            <div id="feedbackCard" class="card">
+                <div class="card-header">
+                    <div class="card-title">💬 Send Feedback</div>
+                </div>
+                <div class="input-group">
+                    <label>Feedback Type</label>
+                    <select id="feedbackType" style="width: 100%; padding: 12px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-family: var(--font-sans); font-size: 14px;">
+                        <option value="bug">🐛 Bug Report</option>
+                        <option value="feature">✨ Feature Request</option>
+                        <option value="general">💭 General Feedback</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Subject</label>
+                    <input id="feedbackSubject" type="text" placeholder="Brief description">
+                </div>
+                <div class="input-group">
+                    <label>Message</label>
+                    <textarea 
+                        id="feedbackMessage" 
+                        placeholder="Describe your feedback in detail..." 
+                        style="min-height: 120px; resize: vertical;"
+                    ></textarea>
+                </div>
+                <button class="btn-success btn-full" onclick="sendFeedback()">Submit Feedback</button>
             </div>
 
             <div class="card">
@@ -648,13 +668,10 @@
         const audioCache = {};
         Object.keys(SOUNDS).forEach(key => {
             audioCache[key] = new Audio(SOUNDS[key]);
-            audioCache[key].volume = 0.5;
+            audioCache[key].volume = 1.0; // 100% volume
         });
 
         function playSound(type = 'audit') {
-            const enabled = localStorage.getItem('soundsEnabled') !== 'false';
-            if (!enabled) return;
-            
             try {
                 if (audioCache[type]) {
                     audioCache[type].currentTime = 0;
@@ -662,34 +679,6 @@
                 }
             } catch (e) {
                 console.error('Sound error:', e);
-            }
-        }
-
-        function toggleSounds(enabled) {
-            localStorage.setItem('soundsEnabled', enabled);
-            if (!enabled) {
-                Object.values(audioCache).forEach(audio => audio.pause());
-            }
-        }
-
-        function updateVolume(value) {
-            const volume = value / 100;
-            Object.values(audioCache).forEach(audio => audio.volume = volume);
-            document.getElementById('volumeValue').textContent = `${value}%`;
-            localStorage.setItem('soundVolume', value);
-        }
-
-        function loadSoundSettings() {
-            const soundsEnabled = localStorage.getItem('soundsEnabled') !== 'false';
-            const volume = localStorage.getItem('soundVolume') || 50;
-            
-            const checkbox = document.getElementById('soundEnabled');
-            const slider = document.getElementById('volumeSlider');
-            
-            if (checkbox) checkbox.checked = soundsEnabled;
-            if (slider) {
-                slider.value = volume;
-                updateVolume(volume);
             }
         }
 
@@ -753,11 +742,19 @@
             }
         }
 
-        function showDesktopNotification(title, message) {
+        function showDesktopNotification(sender, message) {
             if ('Notification' in window && Notification.permission === 'granted') {
-                const n = new Notification(title, { body: message, tag: 'audit' });
-                n.onclick = () => { window.focus(); n.close(); };
-                setTimeout(() => n.close(), 8000);
+                try {
+                    const n = new Notification(sender, { 
+                        body: message,
+                        tag: 'audit',
+                        requireInteraction: false
+                    });
+                    n.onclick = () => { window.focus(); n.close(); };
+                    setTimeout(() => n.close(), 8000);
+                } catch (e) {
+                    console.error('Notification error:', e);
+                }
             }
         }
 
@@ -1126,10 +1123,10 @@
             logMessage(`Welcome ${currentUserData.full_name}`, 'success');
             loadNotifications();
             checkNotificationPermission();
-            loadSoundSettings();
             
             if (currentUserData.username === 'admin') {
                 document.getElementById('importCard').style.display = 'block';
+                document.getElementById('broadcastCard').style.display = 'block';
             }
             
             auditsSent = parseInt(localStorage.getItem('auditsSent') || '0');
@@ -1178,9 +1175,12 @@
                     const soundType = data.isReply ? 'reply' : 'audit';
                     playSound(soundType);
                     
-                    const title = data.isReply ? '💬 Reply Received' : '🔔 Audit Request';
+                    // Clean titles
+                    const title = data.isReply ? 'Reply from ' + data.sender : data.sender + ' sent an audit';
                     showToast(title, data.message, data.isReply ? 'success' : 'audit', 8000);
-                    showDesktopNotification(title, data.message);
+                    
+                    // Desktop notification with clean text
+                    showDesktopNotification(data.sender, data.message);
                     
                     addNotification({
                         id: data.id,
@@ -1193,7 +1193,7 @@
                         replyTo: data.replyTo
                     });
                     
-                    logMessage(`Received: ${data.message}`, 'success');
+                    logMessage(`${data.sender}: ${data.message}`, 'success');
                 } catch (e) {
                     console.error('WebSocket parse error:', e);
                     playSound('audit');
@@ -1322,6 +1322,82 @@
             } catch (error) {
                 logMessage('Error: ' + error.message, 'error');
                 showToast('Error', error.message, 'error', 3000);
+            }
+        }
+
+        async function sendBroadcast() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                showToast('Error', 'Connect first', 'error', 3000);
+                return;
+            }
+
+            const target = document.getElementById('broadcastTarget').value;
+            const message = document.getElementById('broadcastMessage').value.trim();
+
+            if (!message) {
+                showToast('Error', 'Message required', 'error', 3000);
+                return;
+            }
+
+            if (!confirm(`Send broadcast to ${target === 'online' ? 'online users' : 'all users'}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/broadcast`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        sender: currentUserData.username,
+                        targetType: target
+                    })
+                });
+
+                if (!response.ok) throw new Error('Broadcast failed');
+                const data = await response.json();
+                
+                showToast('Success', data.message, 'success', 5000);
+                logMessage(`Broadcast sent: ${data.delivered} delivered, ${data.queued} queued`, 'success');
+                document.getElementById('broadcastMessage').value = '';
+            } catch (error) {
+                showToast('Error', error.message, 'error', 3000);
+                logMessage('Broadcast error: ' + error.message, 'error');
+            }
+        }
+
+        async function sendFeedback() {
+            const type = document.getElementById('feedbackType').value;
+            const subject = document.getElementById('feedbackSubject').value.trim();
+            const message = document.getElementById('feedbackMessage').value.trim();
+
+            if (!subject || !message) {
+                showToast('Error', 'All fields required', 'error', 3000);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/feedback`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: currentUserData.username,
+                        subject: subject,
+                        message: message,
+                        type: type
+                    })
+                });
+
+                if (!response.ok) throw new Error('Feedback submission failed');
+                const data = await response.json();
+                
+                showToast('Success', 'Feedback submitted! Admin will review it.', 'success', 5000);
+                logMessage('Feedback sent to admin', 'success');
+                document.getElementById('feedbackSubject').value = '';
+                document.getElementById('feedbackMessage').value = '';
+            } catch (error) {
+                showToast('Error', error.message, 'error', 3000);
+                logMessage('Feedback error: ' + error.message, 'error');
             }
         }
 

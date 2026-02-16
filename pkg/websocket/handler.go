@@ -485,7 +485,7 @@ func AuditHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	message := fmt.Sprintf("🔔 Audit request from %s: %s", req.Requester, req.Details)
+	message := fmt.Sprintf("@%s: %s", req.Requester, req.Details)
 
 	mu.RLock()
 	conn, exists := connections[req.TargetUser]
@@ -614,7 +614,7 @@ func ReplyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create reply message
-	replyMsg := fmt.Sprintf("💬 Reply from %s: %s", req.ReplierUsername, req.ReplyMessage)
+	replyMsg := fmt.Sprintf("@%s replied: %s", req.ReplierUsername, req.ReplyMessage)
 
 	// Save reply to database
 	dbMutex.Lock()
@@ -663,6 +663,251 @@ func ReplyHandler(w http.ResponseWriter, r *http.Request) {
 		"message": "Reply sent successfully",
 	})
 	log.Printf("✅ Reply sent from %s to %s", req.ReplierUsername, originalSender)
+}
+
+// BroadcastRequest represents a broadcast message to multiple users
+type BroadcastRequest struct {
+	Message    string `json:"message"`
+	Sender     string `json:"sender"`
+	TargetType string `json:"targetType"` // "online" or "all"
+}
+
+// BroadcastHandler sends messages to multiple users
+func BroadcastHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req BroadcastRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if req.Message == "" || req.Sender == "" || req.TargetType == "" {
+		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	// Verify sender is admin
+	if req.Sender != "admin" {
+		http.Error(w, "Only admin can broadcast", http.StatusForbidden)
+		return
+	}
+
+	message := fmt.Sprintf("📢 Broadcast from @%s: %s", req.Sender, req.Message)
+	delivered := 0
+	queued := 0
+
+	if req.TargetType == "online" {
+		// Send to online users only
+		mu.RLock()
+		for username, conn := range connections {
+			if username == req.Sender {
+				continue // Don't send to sender
+			}
+
+			payload := map[string]interface{}{
+				"id":        time.Now().UnixNano(),
+				"message":   message,
+				"sender":    req.Sender,
+				"canReply":  false,
+				"broadcast": true,
+			}
+			jsonData, _ := json.Marshal(payload)
+
+			if err := conn.WriteMessage(websocket.TextMessage, jsonData); err != nil {
+				log.Printf("❌ Broadcast send error to %s: %v", username, err)
+			} else {
+				delivered++
+			}
+		}
+		mu.RUnlock()
+	} else if req.TargetType == "all" {
+		// Get all registered users
+		rows, err := db.Query("SELECT username FROM users WHERE username != ?", req.Sender)
+		if err != nil {
+			http.Error(w, "Failed to get users", http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		var allUsers []string
+		for rows.Next() {
+			var username string
+			if err := rows.Scan(&username); err != nil {
+				continue
+			}
+			allUsers = append(allUsers, username)
+		}
+
+		// Send to online users and queue for offline
+		mu.RLock()
+		for _, username := range allUsers {
+			conn, online := connections[username]
+			if online {
+				payload := map[string]interface{}{
+					"id":        time.Now().UnixNano(),
+					"message":   message,
+					"sender":    req.Sender,
+					"canReply":  false,
+					"broadcast": true,
+				}
+				jsonData, _ := json.Marshal(payload)
+
+				if err := conn.WriteMessage(websocket.TextMessage, jsonData); err != nil {
+					// If send fails, queue it
+					queueNotification(username, message)
+					queued++
+				} else {
+					delivered++
+				}
+			} else {
+				// Queue for offline users
+				queueNotification(username, message)
+				queued++
+			}
+		}
+		mu.RUnlock()
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":    "sent",
+		"delivered": delivered,
+		"queued":    queued,
+		"message":   fmt.Sprintf("Broadcast sent to %d users, queued for %d", delivered, queued),
+	})
+	log.Printf("✅ Broadcast sent by %s: %d delivered, %d queued", req.Sender, delivered, queued)
+}
+
+// FeedbackRequest represents user feedback
+type FeedbackRequest struct {
+	Username string `json:"username"`
+	Subject  string `json:"subject"`
+	Message  string `json:"message"`
+	Type     string `json:"type"` // "bug", "feature", "general"
+}
+
+// FeedbackHandler handles user feedback
+func FeedbackHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req FeedbackRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if req.Username == "" || req.Subject == "" || req.Message == "" {
+		http.Error(w, "All fields required", http.StatusBadRequest)
+		return
+	}
+
+	// Create feedback table if not exists
+	dbMutex.Lock()
+	_, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS feedback (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			username TEXT NOT NULL,
+			subject TEXT NOT NULL,
+			message TEXT NOT NULL,
+			type TEXT NOT NULL,
+			timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+			status TEXT DEFAULT 'pending'
+		)
+	`)
+	dbMutex.Unlock()
+
+	if err != nil {
+		log.Printf("❌ Feedback table creation error: %v", err)
+	}
+
+	// Save feedback
+	dbMutex.Lock()
+	result, err := db.Exec(
+		"INSERT INTO feedback (username, subject, message, type) VALUES (?, ?, ?, ?)",
+		req.Username, req.Subject, req.Message, req.Type,
+	)
+	dbMutex.Unlock()
+
+	if err != nil {
+		log.Printf("❌ Feedback insert error: %v", err)
+		http.Error(w, "Failed to save feedback", http.StatusInternalServerError)
+		return
+	}
+
+	_, _ = result.LastInsertId()
+
+	// Create notification message
+	adminMessage := fmt.Sprintf("📝 @%s (%s): %s - %s", req.Username, req.Type, req.Subject, req.Message)
+
+	// Save notification to database for tracking
+	dbMutex.Lock()
+	notifResult, err := db.Exec(
+		"INSERT INTO notifications (target, sender, message) VALUES (?, ?, ?)",
+		"admin", req.Username, adminMessage,
+	)
+	dbMutex.Unlock()
+
+	if err != nil {
+		log.Printf("❌ Feedback notification error: %v", err)
+	}
+
+	notificationID, _ := notifResult.LastInsertId()
+
+	// Send notification to admin
+	mu.RLock()
+	adminConn, adminOnline := connections["admin"]
+	mu.RUnlock()
+
+	if adminOnline {
+		payload := map[string]interface{}{
+			"id":       notificationID,
+			"message":  adminMessage,
+			"sender":   req.Username,
+			"canReply": true,
+			"feedback": true,
+		}
+		jsonData, _ := json.Marshal(payload)
+
+		if err := adminConn.WriteMessage(websocket.TextMessage, jsonData); err == nil {
+			dbMutex.Lock()
+			db.Exec("UPDATE notifications SET delivered = 1 WHERE id = ?", notificationID)
+			dbMutex.Unlock()
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "sent",
+		"message": "Feedback submitted successfully",
+	})
+	log.Printf("✅ Feedback received from %s: %s", req.Username, req.Subject)
 }
 
 // GetOnlineUsers returns list of currently connected usernames
