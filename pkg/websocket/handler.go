@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -412,11 +411,11 @@ func sendQueuedNotifications(conn *websocket.Conn, username string) error {
 	count := 0
 	for _, n := range notifications {
 		payload := map[string]interface{}{
-			"id":      n.ID,
-			"message": n.Message,
-			"sender":  n.Sender,
+			"id":       n.ID,
+			"message":  n.Message,
+			"sender":   n.Sender,
 			"canReply": !n.ReplyTo.Valid,
-			"isReply": n.ReplyTo.Valid,
+			"isReply":  n.ReplyTo.Valid,
 		}
 
 		if n.ReplyTo.Valid {
@@ -511,9 +510,9 @@ func AuditHandler(w http.ResponseWriter, r *http.Request) {
 	if exists {
 		// Send with notification ID for reply tracking
 		notifPayload := map[string]interface{}{
-			"id":      notificationID,
-			"message": message,
-			"sender":  req.Requester,
+			"id":       notificationID,
+			"message":  message,
+			"sender":   req.Requester,
 			"canReply": true,
 		}
 		jsonData, _ := json.Marshal(notifPayload)
@@ -570,8 +569,8 @@ func queueNotification(target, message string) error {
 
 // ReplyRequest represents a reply to an audit notification
 type ReplyRequest struct {
-	NotificationID int64  `json:"notificationId"`
-	ReplyMessage   string `json:"replyMessage"`
+	NotificationID  int64  `json:"notificationId"`
+	ReplyMessage    string `json:"replyMessage"`
 	ReplierUsername string `json:"replierUsername"`
 }
 

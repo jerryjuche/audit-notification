@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/jerryjuche/audit-notification-system/pkg/websocket"
+	"github.com/jerryjuche/audit-notification/pkg/websocket"
 )
 
 func main() {
@@ -22,27 +22,27 @@ func main() {
 
 	// WebSocket endpoint
 	http.HandleFunc("/ws", websocket.EchoHandler)
-	
+
 	// User management endpoints
 	http.HandleFunc("/register", websocket.RegisterHandler)
 	http.HandleFunc("/login", websocket.LoginHandler)
 	http.HandleFunc("/import", websocket.ImportUsersHandler)
 	http.HandleFunc("/search", websocket.SearchUsersHandler)
-	
+
 	// Audit request endpoint
 	http.HandleFunc("/audit", websocket.AuditHandler)
 	http.HandleFunc("/reply", websocket.ReplyHandler)
-	
+
 	// Online users endpoint
 	http.HandleFunc("/online", websocket.OnlineUsersHandler)
-	
+
 	// Serve static files (HTML client)
 	http.Handle("/", http.FileServer(http.Dir("./client")))
 
 	log.Printf("Server starting on :%s", port)
 	log.Printf("WebSocket endpoint: ws://localhost:%s/ws", port)
 	log.Printf("Client available at: http://localhost:%s", port)
-	
+
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("Server error: %v", err)
 	}
