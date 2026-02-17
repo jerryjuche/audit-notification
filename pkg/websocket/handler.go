@@ -1,4 +1,3 @@
-// pkg/websocket/handler.go
 package websocket
 
 import (
@@ -15,318 +14,272 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gorilla/websocket"
+	gorilla "github.com/gorilla/websocket"
 	_ "github.com/lib/pq"
 	"github.com/xuri/excelize/v2"
 )
 
+// ── globals ──────────────────────────────────────────────────
 var (
-	upgrader = websocket.Upgrader{
+	upgrader = gorilla.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
+		CheckOrigin:     func(*http.Request) bool { return true },
 	}
-
-	connections = make(map[string]*websocket.Conn)
+	connections = make(map[string]*gorilla.Conn)
 	mu          sync.RWMutex
-	dbMutex     sync.Mutex
-
-	db *sql.DB
+	dbMu        sync.Mutex
+	db          *sql.DB
 )
 
-// InitDB initializes PostgreSQL database
+// ── database init ─────────────────────────────────────────────
 func InitDB() {
-	var err error
-	
-	// Try environment variable first, then use direct connection string
+	log.Println("Initializing database...")
+
 	connStr := os.Getenv("DATABASE_URL")
-	
 	if connStr == "" {
-		// Direct connection string (works from anywhere)
 		connStr = "postgres://audit_db_dyhx_user:UKaGYfaMuffMA4Pu9JZoToFAxlzlzQc9@dpg-d69h9qjnv86c73eug1tg-a.oregon-postgres.render.com:5432/audit_db_dyhx?sslmode=require"
 	}
 
+	var err error
 	db, err = sql.Open("postgres", connStr)
 	if err != nil {
-		log.Fatal("❌ Failed to connect to database:", err)
+		log.Fatal("❌ Failed to open database:", err)
 	}
 
-	// Set connection timeout
-	db.SetConnMaxLifetime(time.Minute * 3)
 	db.SetMaxOpenConns(10)
 	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(3 * time.Minute)
 
-	// Try to ping with longer timeout for slow connections
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	log.Println("⏳ Connecting to PostgreSQL (may take up to 30s)...")
+	log.Println("⏳ Connecting to PostgreSQL (up to 30s)...")
 	if err = db.PingContext(ctx); err != nil {
 		log.Fatal("❌ Failed to ping database:", err)
 	}
 
-	// Create tables
-	createTablesSQL := `
+	schema := `
 	CREATE TABLE IF NOT EXISTS users (
-		id SERIAL PRIMARY KEY,
-		username VARCHAR(255) UNIQUE NOT NULL,
-		email VARCHAR(255) UNIQUE NOT NULL,
-		full_name VARCHAR(255) NOT NULL,
+		id            SERIAL PRIMARY KEY,
+		username      VARCHAR(255) UNIQUE NOT NULL,
+		email         VARCHAR(255) UNIQUE NOT NULL,
+		full_name     VARCHAR(255) NOT NULL,
 		password_hash VARCHAR(255) NOT NULL,
-		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		last_login TIMESTAMP
+		created_at    TIMESTAMP DEFAULT NOW(),
+		last_login    TIMESTAMP
 	);
-	
 	CREATE TABLE IF NOT EXISTS notifications (
-		id SERIAL PRIMARY KEY,
-		target VARCHAR(255) NOT NULL,
-		sender VARCHAR(255) NOT NULL,
-		message TEXT NOT NULL,
-		reply_to INTEGER DEFAULT NULL,
-		timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		delivered BOOLEAN DEFAULT FALSE,
-		read BOOLEAN DEFAULT FALSE,
-		FOREIGN KEY (target) REFERENCES users(username) ON DELETE CASCADE,
-		FOREIGN KEY (sender) REFERENCES users(username) ON DELETE CASCADE,
+		id          SERIAL PRIMARY KEY,
+		target      VARCHAR(255) NOT NULL,
+		sender      VARCHAR(255) NOT NULL,
+		message     TEXT NOT NULL,
+		reply_to    INTEGER DEFAULT NULL,
+		timestamp   TIMESTAMP DEFAULT NOW(),
+		delivered   BOOLEAN DEFAULT FALSE,
+		read        BOOLEAN DEFAULT FALSE,
+		FOREIGN KEY (target)   REFERENCES users(username) ON DELETE CASCADE,
+		FOREIGN KEY (sender)   REFERENCES users(username) ON DELETE CASCADE,
 		FOREIGN KEY (reply_to) REFERENCES notifications(id) ON DELETE SET NULL
 	);
-
 	CREATE TABLE IF NOT EXISTS feedback (
-		id SERIAL PRIMARY KEY,
-		username VARCHAR(255) NOT NULL,
-		subject VARCHAR(255) NOT NULL,
-		message TEXT NOT NULL,
-		type VARCHAR(50) NOT NULL,
-		timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		status VARCHAR(50) DEFAULT 'pending'
+		id        SERIAL PRIMARY KEY,
+		username  VARCHAR(255) NOT NULL,
+		subject   VARCHAR(255) NOT NULL,
+		message   TEXT NOT NULL,
+		type      VARCHAR(50)  NOT NULL,
+		status    VARCHAR(50)  DEFAULT 'pending',
+		timestamp TIMESTAMP    DEFAULT NOW()
 	);
-	
-	CREATE INDEX IF NOT EXISTS idx_target_delivered ON notifications(target, delivered);
-	CREATE INDEX IF NOT EXISTS idx_username ON users(username);
-	CREATE INDEX IF NOT EXISTS idx_reply_to ON notifications(reply_to);
+	CREATE INDEX IF NOT EXISTS idx_notif_target ON notifications(target, delivered);
+	CREATE INDEX IF NOT EXISTS idx_users_uname  ON users(username);
+	CREATE INDEX IF NOT EXISTS idx_notif_reply  ON notifications(reply_to);
 	`
-
-	_, err = db.Exec(createTablesSQL)
-	if err != nil {
+	if _, err = db.Exec(schema); err != nil {
 		log.Fatal("❌ Failed to create tables:", err)
 	}
-
-	log.Println("✅ PostgreSQL database initialized successfully")
+	log.Println("✅ PostgreSQL initialized")
 }
 
-// User represents a registered user
-type User struct {
-	ID           int        `json:"id"`
-	Username     string     `json:"username"`
-	Email        string     `json:"email"`
-	FullName     string     `json:"full_name"`
-	PasswordHash string     `json:"-"`
-	CreatedAt    time.Time  `json:"created_at"`
-	LastLogin    *time.Time `json:"last_login,omitempty"`
+// ── helpers ───────────────────────────────────────────────────
+func hashPassword(p string) string {
+	h := sha256.Sum256([]byte(p))
+	return hex.EncodeToString(h[:])
 }
 
-type RegisterRequest struct {
+func userExists(username string) bool {
+	var ok bool
+	db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE username=$1)", username).Scan(&ok)
+	return ok
+}
+
+func cors(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Admin-User")
+}
+
+func jsonOK(w http.ResponseWriter, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(data)
+}
+
+func jsonErr(w http.ResponseWriter, code int, msg string) {
+	http.Error(w, msg, code)
+}
+
+func deliver(username string, payload map[string]interface{}) bool {
+	mu.RLock()
+	conn, ok := connections[username]
+	mu.RUnlock()
+	if !ok {
+		return false
+	}
+	b, _ := json.Marshal(payload)
+	return conn.WriteMessage(gorilla.TextMessage, b) == nil
+}
+
+func queue(target, sender, message string) {
+	dbMu.Lock()
+	defer dbMu.Unlock()
+	db.Exec("INSERT INTO notifications(target,sender,message) VALUES($1,$2,$3)", target, sender, message)
+}
+
+// ── register ──────────────────────────────────────────────────
+type registerReq struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
 	FullName string `json:"full_name"`
 	Password string `json:"password"`
 }
 
-type LoginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-func hashPassword(password string) string {
-	hash := sha256.Sum256([]byte(password))
-	return hex.EncodeToString(hash[:])
-}
-
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	cors(w)
+	if r.Method == http.MethodOptions { w.WriteHeader(200); return }
+	if r.Method != http.MethodPost    { jsonErr(w, 405, "Method not allowed"); return }
 
-	if r.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var req RegisterRequest
+	var req registerReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
+		jsonErr(w, 400, "Invalid JSON"); return
 	}
+	req.Username = strings.TrimSpace(req.Username)
+	req.Email    = strings.TrimSpace(req.Email)
+	req.FullName = strings.TrimSpace(req.FullName)
 
 	if req.Username == "" || req.Email == "" || req.FullName == "" || req.Password == "" {
-		http.Error(w, "All fields are required", http.StatusBadRequest)
-		return
+		jsonErr(w, 400, "All fields required"); return
 	}
-
 	if len(req.Password) < 6 {
-		http.Error(w, "Password must be at least 6 characters", http.StatusBadRequest)
-		return
+		jsonErr(w, 400, "Password must be at least 6 characters"); return
 	}
 
-	passwordHash := hashPassword(req.Password)
-
-	dbMutex.Lock()
-	var userID int
+	var id int
+	dbMu.Lock()
 	err := db.QueryRow(
-		"INSERT INTO users (username, email, full_name, password_hash) VALUES ($1, $2, $3, $4) RETURNING id",
-		req.Username, req.Email, req.FullName, passwordHash,
-	).Scan(&userID)
-	dbMutex.Unlock()
+		"INSERT INTO users(username,email,full_name,password_hash) VALUES($1,$2,$3,$4) RETURNING id",
+		req.Username, req.Email, req.FullName, hashPassword(req.Password),
+	).Scan(&id)
+	dbMu.Unlock()
 
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "unique") {
 			if strings.Contains(err.Error(), "username") {
-				http.Error(w, "Username already exists", http.StatusConflict)
+				jsonErr(w, 409, "Username already exists")
 			} else {
-				http.Error(w, "Email already registered", http.StatusConflict)
+				jsonErr(w, 409, "Email already registered")
 			}
 			return
 		}
-		log.Printf("❌ Registration error: %v", err)
-		http.Error(w, "Registration failed", http.StatusInternalServerError)
-		return
+		log.Printf("❌ Register: %v", err)
+		jsonErr(w, 500, "Registration failed"); return
 	}
 
+	log.Printf("✅ Registered: %s", req.Username)
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(201)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"message": "Registration successful",
-		"user": map[string]interface{}{
-			"id":       userID,
-			"username": req.Username,
-			"email":    req.Email,
-			"fullName": req.FullName,
-		},
+		"user":    map[string]interface{}{"id": id, "username": req.Username, "email": req.Email, "full_name": req.FullName},
 	})
+}
 
-	log.Printf("✅ New user registered: %s", req.Username)
+// ── login ─────────────────────────────────────────────────────
+type loginReq struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	cors(w)
+	if r.Method == http.MethodOptions { w.WriteHeader(200); return }
+	if r.Method != http.MethodPost    { jsonErr(w, 405, "Method not allowed"); return }
 
-	if r.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var req LoginRequest
+	var req loginReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
+		jsonErr(w, 400, "Invalid JSON"); return
 	}
-
 	if req.Username == "" || req.Password == "" {
-		http.Error(w, "Username and password required", http.StatusBadRequest)
-		return
+		jsonErr(w, 400, "Username and password required"); return
 	}
 
-	var user User
-	var passwordHash string
+	var (
+		id           int
+		email        string
+		fullName     string
+		passwordHash string
+		createdAt    time.Time
+		lastLogin    sql.NullTime
+	)
 	err := db.QueryRow(
-		"SELECT id, username, email, full_name, password_hash, created_at FROM users WHERE username = $1",
+		"SELECT id,email,full_name,password_hash,created_at,last_login FROM users WHERE username=$1",
 		req.Username,
-	).Scan(&user.ID, &user.Username, &user.Email, &user.FullName, &passwordHash, &user.CreatedAt)
+	).Scan(&id, &email, &fullName, &passwordHash, &createdAt, &lastLogin)
 
-	if err == sql.ErrNoRows {
-		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
-		return
+	if err == sql.ErrNoRows || hashPassword(req.Password) != passwordHash {
+		jsonErr(w, 401, "Invalid username or password"); return
 	}
 	if err != nil {
-		log.Printf("❌ Login query error: %v", err)
-		http.Error(w, "Login failed", http.StatusInternalServerError)
-		return
-	}
-
-	if hashPassword(req.Password) != passwordHash {
-		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
-		return
+		log.Printf("❌ Login: %v", err)
+		jsonErr(w, 500, "Login failed"); return
 	}
 
 	now := time.Now()
-	db.Exec("UPDATE users SET last_login = $1 WHERE id = $2", now, user.ID)
-	user.LastLogin = &now
+	db.Exec("UPDATE users SET last_login=$1 WHERE id=$2", now, id)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	log.Printf("✅ Login: %s", req.Username)
+	jsonOK(w, map[string]interface{}{
 		"success": true,
 		"message": "Login successful",
-		"user":    user,
+		"user":    map[string]interface{}{"id": id, "username": req.Username, "email": email, "full_name": fullName, "created_at": createdAt},
 	})
-
-	log.Printf("✅ User logged in: %s", req.Username)
 }
 
-func userExistsInDB(username string) bool {
-	var exists bool
-	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)", username).Scan(&exists)
-	if err != nil {
-		log.Printf("❌ User check error: %v", err)
-		return false
-	}
-	return exists
-}
-
+// ── websocket ─────────────────────────────────────────────────
 func EchoHandler(w http.ResponseWriter, r *http.Request) {
 	username := r.URL.Query().Get("user")
-	if username == "" {
-		http.Error(w, "Missing 'user' parameter", http.StatusBadRequest)
-		return
-	}
-
-	if !userExistsInDB(username) {
-		http.Error(w, "User not registered", http.StatusUnauthorized)
-		return
-	}
+	if username == "" { jsonErr(w, 400, "Missing user parameter"); return }
+	if !userExists(username) { jsonErr(w, 401, "User not registered"); return }
 
 	mu.RLock()
-	_, alreadyConnected := connections[username]
+	_, already := connections[username]
 	mu.RUnlock()
-
-	if alreadyConnected {
-		http.Error(w, "User already connected", http.StatusConflict)
-		return
-	}
+	if already { jsonErr(w, 409, "User already connected"); return }
 
 	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Printf("❌ Upgrade error for %s: %v", username, err)
-		return
-	}
+	if err != nil { log.Printf("❌ WS upgrade: %v", err); return }
 
 	mu.Lock()
 	connections[username] = conn
 	mu.Unlock()
-
-	log.Printf("✅ User '%s' connected (total: %d)", username, len(connections))
+	log.Printf("✅ Connected: %s (%d online)", username, len(connections))
 
 	defer func() {
 		mu.Lock()
 		delete(connections, username)
 		mu.Unlock()
 		conn.Close()
-		log.Printf("👋 User '%s' disconnected", username)
+		log.Printf("👋 Disconnected: %s", username)
 	}()
 
 	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
@@ -335,389 +288,242 @@ func EchoHandler(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 
-	stopPing := make(chan struct{})
-	defer close(stopPing)
+	stop := make(chan struct{})
+	defer close(stop)
+	go func() {
+		t := time.NewTicker(30 * time.Second)
+		defer t.Stop()
+		for {
+			select {
+			case <-t.C:
+				if err := conn.WriteControl(gorilla.PingMessage, nil, time.Now().Add(10*time.Second)); err != nil {
+					return
+				}
+			case <-stop:
+				return
+			}
+		}
+	}()
 
-	go pingRoutine(conn, username, stopPing)
-
-	if err := sendQueuedNotifications(conn, username); err != nil {
-		log.Printf("⚠️ Error sending queued notifications: %v", err)
-	}
+	sendQueued(conn, username)
 
 	for {
 		msgType, msg, err := conn.ReadMessage()
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
-				log.Printf("⚠️ Unexpected close: %v", err)
+			if gorilla.IsUnexpectedCloseError(err, gorilla.CloseGoingAway, gorilla.CloseNormalClosure) {
+				log.Printf("⚠️ WS %s: %v", username, err)
 			}
 			return
 		}
-
-		if err := conn.WriteMessage(msgType, msg); err != nil {
-			log.Printf("❌ Write error: %v", err)
-			return
-		}
+		conn.WriteMessage(msgType, msg)
 	}
 }
 
-func pingRoutine(conn *websocket.Conn, username string, stop chan struct{}) {
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			if err := conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(10*time.Second)); err != nil {
-				return
-			}
-		case <-stop:
-			return
-		}
-	}
-}
-
-func sendQueuedNotifications(conn *websocket.Conn, username string) error {
+func sendQueued(conn *gorilla.Conn, username string) {
 	rows, err := db.Query(
-		"SELECT id, sender, message, reply_to FROM notifications WHERE target = $1 AND delivered = FALSE ORDER BY timestamp ASC",
+		"SELECT id,sender,message,reply_to FROM notifications WHERE target=$1 AND delivered=FALSE ORDER BY timestamp ASC",
 		username,
 	)
-	if err != nil {
-		return fmt.Errorf("query error: %w", err)
-	}
+	if err != nil { return }
 	defer rows.Close()
 
-	var notifications []struct {
-		ID      int64
-		Sender  string
-		Message string
-		ReplyTo sql.NullInt64
+	type item struct {
+		id      int64
+		sender  string
+		message string
+		replyTo sql.NullInt64
 	}
 
+	var items []item
 	for rows.Next() {
-		var n struct {
-			ID      int64
-			Sender  string
-			Message string
-			ReplyTo sql.NullInt64
+		var it item
+		if rows.Scan(&it.id, &it.sender, &it.message, &it.replyTo) == nil {
+			items = append(items, it)
 		}
-		if err := rows.Scan(&n.ID, &n.Sender, &n.Message, &n.ReplyTo); err != nil {
-			log.Printf("❌ Scan error: %v", err)
-			continue
-		}
-		notifications = append(notifications, n)
 	}
 
-	count := 0
-	for _, n := range notifications {
-		payload := map[string]interface{}{
-			"id":      n.ID,
-			"message": n.Message,
-			"sender":  n.Sender,
-			"canReply": !n.ReplyTo.Valid,
-			"isReply": n.ReplyTo.Valid,
+	for _, it := range items {
+		p := map[string]interface{}{
+			"id": it.id, "message": it.message, "sender": it.sender,
+			"canReply": !it.replyTo.Valid, "isReply": it.replyTo.Valid,
 		}
-
-		if n.ReplyTo.Valid {
-			payload["replyTo"] = n.ReplyTo.Int64
+		if it.replyTo.Valid {
+			p["replyTo"] = it.replyTo.Int64
 		}
-
-		jsonData, _ := json.Marshal(payload)
-
-		if err := conn.WriteMessage(websocket.TextMessage, jsonData); err != nil {
-			return fmt.Errorf("send error: %w", err)
-		}
-
-		db.Exec("UPDATE notifications SET delivered = TRUE WHERE id = $1", n.ID)
-		count++
+		b, _ := json.Marshal(p)
+		if conn.WriteMessage(gorilla.TextMessage, b) != nil { break }
+		db.Exec("UPDATE notifications SET delivered=TRUE WHERE id=$1", it.id)
 	}
-
-	if count > 0 {
-		log.Printf("📬 Sent %d queued notifications to %s", count, username)
+	if len(items) > 0 {
+		log.Printf("📬 Delivered %d queued to %s", len(items), username)
 	}
-
-	return nil
 }
 
-type AuditRequest struct {
+// ── audit ─────────────────────────────────────────────────────
+type auditReq struct {
 	TargetUser string `json:"targetUser"`
 	Requester  string `json:"requester"`
 	Details    string `json:"details"`
 }
 
 func AuditHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	cors(w)
+	if r.Method == http.MethodOptions { w.WriteHeader(200); return }
+	if r.Method != http.MethodPost    { jsonErr(w, 405, "Method not allowed"); return }
 
-	if r.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var req AuditRequest
+	var req auditReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
-		return
+		jsonErr(w, 400, "Invalid JSON"); return
 	}
+	req.TargetUser = strings.TrimSpace(req.TargetUser)
+	req.Requester  = strings.TrimSpace(req.Requester)
+	req.Details    = strings.TrimSpace(req.Details)
 
 	if req.TargetUser == "" || req.Requester == "" || req.Details == "" {
-		http.Error(w, "Missing required fields", http.StatusBadRequest)
-		return
+		jsonErr(w, 400, "All fields required"); return
+	}
+	if !userExists(req.TargetUser) {
+		jsonErr(w, 400, "Target user not found"); return
 	}
 
-	if !userExistsInDB(req.TargetUser) {
-		http.Error(w, "Target user not registered", http.StatusBadRequest)
-		return
-	}
+	msg := fmt.Sprintf("@%s: %s", req.Requester, req.Details)
 
-	message := fmt.Sprintf("@%s: %s", req.Requester, req.Details)
+	var nid int64
+	dbMu.Lock()
+	db.QueryRow(
+		"INSERT INTO notifications(target,sender,message) VALUES($1,$2,$3) RETURNING id",
+		req.TargetUser, req.Requester, msg,
+	).Scan(&nid)
+	dbMu.Unlock()
 
-	mu.RLock()
-	conn, exists := connections[req.TargetUser]
-	mu.RUnlock()
-
-	var notificationID int64
-	err := db.QueryRow(
-		"INSERT INTO notifications (target, sender, message) VALUES ($1, $2, $3) RETURNING id",
-		req.TargetUser, req.Requester, message,
-	).Scan(&notificationID)
-
-	if err != nil {
-		log.Printf("❌ DB insert error: %v", err)
-		http.Error(w, "Failed to save notification", http.StatusInternalServerError)
-		return
-	}
-
-	if exists {
-		notifPayload := map[string]interface{}{
-			"id":      notificationID,
-			"message": message,
-			"sender":  req.Requester,
-			"canReply": true,
-		}
-		jsonData, _ := json.Marshal(notifPayload)
-
-		if err := conn.WriteMessage(websocket.TextMessage, jsonData); err != nil {
-			log.Printf("❌ Send error: %v", err)
-		} else {
-			db.Exec("UPDATE notifications SET delivered = TRUE WHERE id = $1", notificationID)
-		}
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{
-		"status":  "delivered",
-		"message": "Notification sent successfully",
+	sent := deliver(req.TargetUser, map[string]interface{}{
+		"id": nid, "message": msg, "sender": req.Requester, "canReply": true,
 	})
-	log.Printf("✅ Notification sent to %s from %s", req.TargetUser, req.Requester)
+	if sent {
+		db.Exec("UPDATE notifications SET delivered=TRUE WHERE id=$1", nid)
+	}
+
+	status := "queued"
+	if sent { status = "delivered" }
+	log.Printf("✅ Audit %s→%s (%s)", req.Requester, req.TargetUser, status)
+	jsonOK(w, map[string]string{"status": status, "message": "Notification sent successfully"})
 }
 
-type ReplyRequest struct {
+// ── reply ─────────────────────────────────────────────────────
+type replyReq struct {
 	NotificationID  int64  `json:"notificationId"`
 	ReplyMessage    string `json:"replyMessage"`
 	ReplierUsername string `json:"replierUsername"`
 }
 
 func ReplyHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	cors(w)
+	if r.Method == http.MethodOptions { w.WriteHeader(200); return }
+	if r.Method != http.MethodPost    { jsonErr(w, 405, "Method not allowed"); return }
 
-	if r.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var req ReplyRequest
+	var req replyReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
+		jsonErr(w, 400, "Invalid JSON"); return
 	}
-
 	if req.NotificationID == 0 || req.ReplyMessage == "" || req.ReplierUsername == "" {
-		http.Error(w, "Missing required fields", http.StatusBadRequest)
-		return
+		jsonErr(w, 400, "Missing fields"); return
 	}
 
-	var originalSender string
-	err := db.QueryRow("SELECT sender FROM notifications WHERE id = $1", req.NotificationID).Scan(&originalSender)
-
-	if err != nil {
-		http.Error(w, "Original notification not found", http.StatusNotFound)
-		return
+	var origSender string
+	if err := db.QueryRow("SELECT sender FROM notifications WHERE id=$1", req.NotificationID).Scan(&origSender); err != nil {
+		jsonErr(w, 404, "Notification not found"); return
 	}
 
-	replyMsg := fmt.Sprintf("@%s replied: %s", req.ReplierUsername, req.ReplyMessage)
+	msg := fmt.Sprintf("@%s replied: %s", req.ReplierUsername, req.ReplyMessage)
 
-	var replyID int64
-	err = db.QueryRow(
-		"INSERT INTO notifications (target, sender, message, reply_to) VALUES ($1, $2, $3, $4) RETURNING id",
-		originalSender, req.ReplierUsername, replyMsg, req.NotificationID,
-	).Scan(&replyID)
+	var rid int64
+	dbMu.Lock()
+	db.QueryRow(
+		"INSERT INTO notifications(target,sender,message,reply_to) VALUES($1,$2,$3,$4) RETURNING id",
+		origSender, req.ReplierUsername, msg, req.NotificationID,
+	).Scan(&rid)
+	dbMu.Unlock()
 
-	if err != nil {
-		log.Printf("❌ Reply insert error: %v", err)
-		http.Error(w, "Failed to save reply", http.StatusInternalServerError)
-		return
-	}
-
-	mu.RLock()
-	conn, exists := connections[originalSender]
-	mu.RUnlock()
-
-	if exists {
-		replyPayload := map[string]interface{}{
-			"id":      replyID,
-			"message": replyMsg,
-			"sender":  req.ReplierUsername,
-			"replyTo": req.NotificationID,
-			"isReply": true,
-		}
-		jsonData, _ := json.Marshal(replyPayload)
-
-		if err := conn.WriteMessage(websocket.TextMessage, jsonData); err == nil {
-			db.Exec("UPDATE notifications SET delivered = TRUE WHERE id = $1", replyID)
-		}
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{
-		"status":  "sent",
-		"message": "Reply sent successfully",
+	sent := deliver(origSender, map[string]interface{}{
+		"id": rid, "message": msg, "sender": req.ReplierUsername,
+		"replyTo": req.NotificationID, "isReply": true,
 	})
-	log.Printf("✅ Reply sent from %s to %s", req.ReplierUsername, originalSender)
+	if sent {
+		db.Exec("UPDATE notifications SET delivered=TRUE WHERE id=$1", rid)
+	}
+
+	log.Printf("✅ Reply %s→%s", req.ReplierUsername, origSender)
+	jsonOK(w, map[string]string{"status": "sent", "message": "Reply sent"})
 }
 
-type BroadcastRequest struct {
+// ── broadcast ─────────────────────────────────────────────────
+type broadcastReq struct {
 	Message    string `json:"message"`
 	Sender     string `json:"sender"`
 	TargetType string `json:"targetType"`
 }
 
 func BroadcastHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	cors(w)
+	if r.Method == http.MethodOptions { w.WriteHeader(200); return }
+	if r.Method != http.MethodPost    { jsonErr(w, 405, "Method not allowed"); return }
 
-	if r.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var req BroadcastRequest
+	var req broadcastReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
+		jsonErr(w, 400, "Invalid JSON"); return
 	}
-
 	if req.Message == "" || req.Sender == "" || req.TargetType == "" {
-		http.Error(w, "Missing required fields", http.StatusBadRequest)
-		return
+		jsonErr(w, 400, "Missing fields"); return
 	}
-
 	if req.Sender != "admin" {
-		http.Error(w, "Only admin can broadcast", http.StatusForbidden)
-		return
+		jsonErr(w, 403, "Only admin can broadcast"); return
 	}
 
-	message := fmt.Sprintf("📢 Broadcast from @%s: %s", req.Sender, req.Message)
-	delivered := 0
-	queued := 0
+	msg := fmt.Sprintf("📢 Broadcast from @%s: %s", req.Sender, req.Message)
+	delivered, queued := 0, 0
 
 	if req.TargetType == "online" {
 		mu.RLock()
 		for username, conn := range connections {
-			if username == req.Sender {
-				continue
-			}
-
-			payload := map[string]interface{}{
-				"id":        time.Now().UnixNano(),
-				"message":   message,
-				"sender":    req.Sender,
-				"canReply":  false,
-				"broadcast": true,
-			}
-			jsonData, _ := json.Marshal(payload)
-
-			if err := conn.WriteMessage(websocket.TextMessage, jsonData); err == nil {
+			if username == req.Sender { continue }
+			b, _ := json.Marshal(map[string]interface{}{
+				"id": time.Now().UnixNano(), "message": msg,
+				"sender": req.Sender, "canReply": false, "broadcast": true,
+			})
+			if conn.WriteMessage(gorilla.TextMessage, b) == nil {
 				delivered++
 			}
 		}
 		mu.RUnlock()
-	} else if req.TargetType == "all" {
-		rows, err := db.Query("SELECT username FROM users WHERE username != $1", req.Sender)
-		if err != nil {
-			http.Error(w, "Failed to get users", http.StatusInternalServerError)
-			return
-		}
+	} else {
+		rows, err := db.Query("SELECT username FROM users WHERE username!=$1", req.Sender)
+		if err != nil { jsonErr(w, 500, "DB error"); return }
 		defer rows.Close()
 
-		var allUsers []string
+		var users []string
 		for rows.Next() {
-			var username string
-			if err := rows.Scan(&username); err != nil {
-				continue
-			}
-			allUsers = append(allUsers, username)
+			var u string
+			if rows.Scan(&u) == nil { users = append(users, u) }
 		}
 
-		mu.RLock()
-		for _, username := range allUsers {
-			conn, online := connections[username]
-			if online {
-				payload := map[string]interface{}{
-					"id":        time.Now().UnixNano(),
-					"message":   message,
-					"sender":    req.Sender,
-					"canReply":  false,
-					"broadcast": true,
-				}
-				jsonData, _ := json.Marshal(payload)
-
-				if err := conn.WriteMessage(websocket.TextMessage, jsonData); err == nil {
-					delivered++
-				} else {
-					db.Exec("INSERT INTO notifications (target, sender, message) VALUES ($1, $2, $3)", username, req.Sender, message)
-					queued++
-				}
-			} else {
-				db.Exec("INSERT INTO notifications (target, sender, message) VALUES ($1, $2, $3)", username, req.Sender, message)
-				queued++
-			}
+		for _, u := range users {
+			ok := deliver(u, map[string]interface{}{
+				"id": time.Now().UnixNano(), "message": msg,
+				"sender": req.Sender, "canReply": false, "broadcast": true,
+			})
+			if ok { delivered++ } else { queue(u, req.Sender, msg); queued++ }
 		}
-		mu.RUnlock()
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":    "sent",
-		"delivered": delivered,
-		"queued":    queued,
-		"message":   fmt.Sprintf("Broadcast sent to %d users, queued for %d", delivered, queued),
-	})
 	log.Printf("✅ Broadcast: %d delivered, %d queued", delivered, queued)
+	jsonOK(w, map[string]interface{}{
+		"status": "sent", "delivered": delivered, "queued": queued,
+		"message": fmt.Sprintf("Sent to %d users, queued for %d", delivered, queued),
+	})
 }
 
-type FeedbackRequest struct {
+// ── feedback (submit) ─────────────────────────────────────────
+type feedbackReq struct {
 	Username string `json:"username"`
 	Subject  string `json:"subject"`
 	Message  string `json:"message"`
@@ -725,246 +531,253 @@ type FeedbackRequest struct {
 }
 
 func FeedbackHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	cors(w)
+	if r.Method == http.MethodOptions { w.WriteHeader(200); return }
+	if r.Method != http.MethodPost    { jsonErr(w, 405, "Method not allowed"); return }
 
-	if r.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var req FeedbackRequest
+	var req feedbackReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
+		jsonErr(w, 400, "Invalid JSON"); return
+	}
+	if req.Username == "" || req.Subject == "" || req.Message == "" || req.Type == "" {
+		jsonErr(w, 400, "All fields required"); return
 	}
 
-	if req.Username == "" || req.Subject == "" || req.Message == "" {
-		http.Error(w, "All fields required", http.StatusBadRequest)
-		return
+	dbMu.Lock()
+	db.Exec("INSERT INTO feedback(username,subject,message,type) VALUES($1,$2,$3,$4)",
+		req.Username, req.Subject, req.Message, req.Type)
+	dbMu.Unlock()
+
+	adminMsg := fmt.Sprintf("📝 @%s (%s): %s — %s", req.Username, req.Type, req.Subject, req.Message)
+
+	var nid int64
+	dbMu.Lock()
+	db.QueryRow("INSERT INTO notifications(target,sender,message) VALUES($1,$2,$3) RETURNING id",
+		"admin", req.Username, adminMsg).Scan(&nid)
+	dbMu.Unlock()
+
+	if deliver("admin", map[string]interface{}{
+		"id": nid, "message": adminMsg, "sender": req.Username, "canReply": true, "feedback": true,
+	}) {
+		db.Exec("UPDATE notifications SET delivered=TRUE WHERE id=$1", nid)
 	}
 
-	var feedbackID int64
-	err := db.QueryRow(
-		"INSERT INTO feedback (username, subject, message, type) VALUES ($1, $2, $3, $4) RETURNING id",
-		req.Username, req.Subject, req.Message, req.Type,
-	).Scan(&feedbackID)
+	log.Printf("✅ Feedback from %s", req.Username)
+	jsonOK(w, map[string]string{"status": "sent", "message": "Feedback submitted successfully"})
+}
 
-	if err != nil {
-		log.Printf("❌ Feedback insert error: %v", err)
-		http.Error(w, "Failed to save feedback", http.StatusInternalServerError)
-		return
-	}
-
-	adminMessage := fmt.Sprintf("📝 @%s (%s): %s - %s", req.Username, req.Type, req.Subject, req.Message)
-
-	var notificationID int64
-	err = db.QueryRow(
-		"INSERT INTO notifications (target, sender, message) VALUES ($1, $2, $3) RETURNING id",
-		"admin", req.Username, adminMessage,
-	).Scan(&notificationID)
-
-	if err != nil {
-		log.Printf("❌ Feedback notification error: %v", err)
-	}
+// ── online users ──────────────────────────────────────────────
+func OnlineUsersHandler(w http.ResponseWriter, r *http.Request) {
+	cors(w)
+	w.Header().Set("Content-Type", "application/json")
 
 	mu.RLock()
-	adminConn, adminOnline := connections["admin"]
+	list := make([]string, 0, len(connections))
+	for u := range connections { list = append(list, u) }
 	mu.RUnlock()
 
-	if adminOnline {
-		payload := map[string]interface{}{
-			"id":       notificationID,
-			"message":  adminMessage,
-			"sender":   req.Username,
-			"canReply": true,
-			"feedback": true,
-		}
-		jsonData, _ := json.Marshal(payload)
-
-		if err := adminConn.WriteMessage(websocket.TextMessage, jsonData); err == nil {
-			db.Exec("UPDATE notifications SET delivered = TRUE WHERE id = $1", notificationID)
-		}
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{
-		"status":  "sent",
-		"message": "Feedback submitted successfully",
-	})
-	log.Printf("✅ Feedback from %s: %s", req.Username, req.Subject)
-}
-
-func GetOnlineUsers() []string {
-	mu.RLock()
-	defer mu.RUnlock()
-
-	users := make([]string, 0, len(connections))
-	for username := range connections {
-		users = append(users, username)
-	}
-	return users
-}
-
-func OnlineUsersHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Content-Type", "application/json")
-
-	users := GetOnlineUsers()
-
-	var totalUsers int
-	db.QueryRow("SELECT COUNT(*) FROM users").Scan(&totalUsers)
+	var total int
+	db.QueryRow("SELECT COUNT(*) FROM users").Scan(&total)
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"online": users,
-		"count":  len(users),
-		"total":  totalUsers,
+		"online": list, "count": len(list), "total": total,
 	})
 }
 
+// ── search ────────────────────────────────────────────────────
 func SearchUsersHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	cors(w)
 	w.Header().Set("Content-Type", "application/json")
 
-	query := r.URL.Query().Get("q")
-	if query == "" {
-		json.NewEncoder(w).Encode([]map[string]string{})
-		return
-	}
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	if len(q) < 2 { json.NewEncoder(w).Encode([]interface{}{}); return }
 
 	rows, err := db.Query(
 		"SELECT username, full_name FROM users WHERE username ILIKE $1 OR full_name ILIKE $1 LIMIT 10",
-		"%"+query+"%",
+		"%"+q+"%",
 	)
-	if err != nil {
-		http.Error(w, "Search failed", http.StatusInternalServerError)
-		return
-	}
+	if err != nil { jsonErr(w, 500, "Search failed"); return }
 	defer rows.Close()
 
-	var users []map[string]string
+	var results []map[string]string
 	for rows.Next() {
 		var username, fullName string
-		if err := rows.Scan(&username, &fullName); err != nil {
-			continue
+		if rows.Scan(&username, &fullName) == nil {
+			results = append(results, map[string]string{"username": username, "fullName": fullName})
 		}
-		users = append(users, map[string]string{
-			"username": username,
-			"fullName": fullName,
-		})
 	}
-
-	json.NewEncoder(w).Encode(users)
+	if results == nil { results = []map[string]string{} }
+	json.NewEncoder(w).Encode(results)
 }
 
+// ── admin: get all users ──────────────────────────────────────
+func GetAllUsersHandler(w http.ResponseWriter, r *http.Request) {
+	cors(w)
+	if r.Method == http.MethodOptions { w.WriteHeader(200); return }
+	if r.Header.Get("X-Admin-User") != "admin" { jsonErr(w, 403, "Admin only"); return }
+
+	rows, err := db.Query(
+		"SELECT id,username,email,full_name,created_at,last_login FROM users ORDER BY created_at DESC",
+	)
+	if err != nil { jsonErr(w, 500, "DB error"); return }
+	defer rows.Close()
+
+	type userRow struct {
+		ID        int        `json:"id"`
+		Username  string     `json:"username"`
+		Email     string     `json:"email"`
+		FullName  string     `json:"full_name"`
+		CreatedAt time.Time  `json:"created_at"`
+		LastLogin *time.Time `json:"last_login"`
+	}
+
+	var users []userRow
+	for rows.Next() {
+		var u userRow
+		var ll sql.NullTime
+		if rows.Scan(&u.ID, &u.Username, &u.Email, &u.FullName, &u.CreatedAt, &ll) == nil {
+			if ll.Valid { u.LastLogin = &ll.Time }
+			users = append(users, u)
+		}
+	}
+	if users == nil { users = []userRow{} }
+	jsonOK(w, map[string]interface{}{"success": true, "users": users})
+}
+
+// ── admin: get feedback ───────────────────────────────────────
+func GetFeedbackHandler(w http.ResponseWriter, r *http.Request) {
+	cors(w)
+	if r.Method == http.MethodOptions { w.WriteHeader(200); return }
+	if r.Header.Get("X-Admin-User") != "admin" { jsonErr(w, 403, "Admin only"); return }
+
+	fbType := r.URL.Query().Get("type")
+	var rows *sql.Rows
+	var err error
+	if fbType != "" && fbType != "all" {
+		rows, err = db.Query(
+			"SELECT id,username,subject,message,type,status,timestamp FROM feedback WHERE type=$1 ORDER BY timestamp DESC",
+			fbType)
+	} else {
+		rows, err = db.Query(
+			"SELECT id,username,subject,message,type,status,timestamp FROM feedback ORDER BY timestamp DESC")
+	}
+	if err != nil { jsonErr(w, 500, "DB error"); return }
+	defer rows.Close()
+
+	type fbRow struct {
+		ID        int       `json:"id"`
+		Username  string    `json:"username"`
+		Subject   string    `json:"subject"`
+		Message   string    `json:"message"`
+		Type      string    `json:"type"`
+		Status    string    `json:"status"`
+		Timestamp time.Time `json:"timestamp"`
+	}
+
+	var items []fbRow
+	for rows.Next() {
+		var f fbRow
+		if rows.Scan(&f.ID, &f.Username, &f.Subject, &f.Message, &f.Type, &f.Status, &f.Timestamp) == nil {
+			items = append(items, f)
+		}
+	}
+	if items == nil { items = []fbRow{} }
+	jsonOK(w, map[string]interface{}{"success": true, "feedback": items})
+}
+
+// ── admin: update feedback status ─────────────────────────────
+func UpdateFeedbackHandler(w http.ResponseWriter, r *http.Request) {
+	cors(w)
+	if r.Method == http.MethodOptions { w.WriteHeader(200); return }
+	if r.Method != http.MethodPost    { jsonErr(w, 405, "Method not allowed"); return }
+	if r.Header.Get("X-Admin-User") != "admin" { jsonErr(w, 403, "Admin only"); return }
+
+	var body struct {
+		ID     int    `json:"id"`
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		jsonErr(w, 400, "Invalid JSON"); return
+	}
+
+	dbMu.Lock()
+	db.Exec("UPDATE feedback SET status=$1 WHERE id=$2", body.Status, body.ID)
+	dbMu.Unlock()
+
+	jsonOK(w, map[string]string{"status": "updated"})
+}
+
+// ── admin: system stats ───────────────────────────────────────
+func SystemStatsHandler(w http.ResponseWriter, r *http.Request) {
+	cors(w)
+	if r.Header.Get("X-Admin-User") != "admin" { jsonErr(w, 403, "Admin only"); return }
+
+	var totalUsers, totalAudits, totalFeedback, pendingFeedback, newToday int
+	db.QueryRow("SELECT COUNT(*) FROM users").Scan(&totalUsers)
+	db.QueryRow("SELECT COUNT(*) FROM notifications").Scan(&totalAudits)
+	db.QueryRow("SELECT COUNT(*) FROM feedback").Scan(&totalFeedback)
+	db.QueryRow("SELECT COUNT(*) FROM feedback WHERE status='pending'").Scan(&pendingFeedback)
+	db.QueryRow("SELECT COUNT(*) FROM users WHERE created_at >= CURRENT_DATE").Scan(&newToday)
+
+	mu.RLock()
+	online := len(connections)
+	mu.RUnlock()
+
+	jsonOK(w, map[string]interface{}{
+		"total_users":      totalUsers,
+		"online_users":     online,
+		"new_today":        newToday,
+		"total_audits":     totalAudits,
+		"total_feedback":   totalFeedback,
+		"pending_feedback": pendingFeedback,
+	})
+}
+
+// ── import users ──────────────────────────────────────────────
 func ImportUsersHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	adminUser := r.URL.Query().Get("admin")
-	if adminUser == "" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	var exists bool
-	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE username = $1 AND username = 'admin')", adminUser).Scan(&exists)
-	if err != nil || !exists {
-		http.Error(w, "Admin access required", http.StatusForbidden)
-		return
-	}
+	cors(w)
+	if r.Method != http.MethodPost { jsonErr(w, 405, "Method not allowed"); return }
+	if r.URL.Query().Get("admin") != "admin" { jsonErr(w, 403, "Admin only"); return }
 
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		http.Error(w, "File too large", http.StatusBadRequest)
-		return
+		jsonErr(w, 400, "File too large"); return
 	}
-
 	file, _, err := r.FormFile("file")
-	if err != nil {
-		http.Error(w, "No file uploaded", http.StatusBadRequest)
-		return
-	}
+	if err != nil { jsonErr(w, 400, "No file uploaded"); return }
 	defer file.Close()
 
 	f, err := excelize.OpenReader(file)
-	if err != nil {
-		http.Error(w, "Invalid Excel file", http.StatusBadRequest)
-		return
-	}
+	if err != nil { jsonErr(w, 400, "Invalid Excel file"); return }
 	defer f.Close()
 
 	sheets := f.GetSheetList()
-	if len(sheets) == 0 {
-		http.Error(w, "No sheets found", http.StatusBadRequest)
-		return
-	}
+	if len(sheets) == 0 { jsonErr(w, 400, "No sheets found"); return }
 
 	rows, err := f.GetRows(sheets[0])
-	if err != nil {
-		http.Error(w, "Failed to read rows", http.StatusInternalServerError)
-		return
-	}
+	if err != nil { jsonErr(w, 500, "Failed to read rows"); return }
 
-	imported := 0
-	skipped := 0
-
+	imported, skipped := 0, 0
 	for i, row := range rows {
-		if i == 0 || len(row) < 3 {
-			continue
-		}
+		if i == 0 || len(row) < 3 { continue }
+		first := strings.TrimSpace(row[0])
+		last  := strings.TrimSpace(row[1])
+		uname := strings.TrimSpace(row[2])
+		if first == "" || last == "" || uname == "" { skipped++; continue }
 
-		firstName := strings.TrimSpace(row[0])
-		lastName := strings.TrimSpace(row[1])
-		username := strings.TrimSpace(row[2])
+		var exists bool
+		db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE username=$1)", uname).Scan(&exists)
+		if exists { skipped++; continue }
 
-		if firstName == "" || lastName == "" || username == "" {
-			skipped++
-			continue
-		}
-
-		fullName := firstName + " " + lastName
-
-		var userExists bool
-		db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)", username).Scan(&userExists)
-		if userExists {
-			skipped++
-			continue
-		}
-
-		email := fmt.Sprintf("%s@local.system", username)
-		passwordHash := hashPassword("changeme123")
-
+		dbMu.Lock()
 		_, err = db.Exec(
-			"INSERT INTO users (username, email, full_name, password_hash) VALUES ($1, $2, $3, $4)",
-			username, email, fullName, passwordHash,
+			"INSERT INTO users(username,email,full_name,password_hash) VALUES($1,$2,$3,$4)",
+			uname, fmt.Sprintf("%s@local.system", uname), first+" "+last, hashPassword("changeme123"),
 		)
-
-		if err != nil {
-			log.Printf("⚠️ Failed to import %s: %v", username, err)
-			skipped++
-			continue
-		}
-
+		dbMu.Unlock()
+		if err != nil { log.Printf("⚠️ Import %s: %v", uname, err); skipped++; continue }
 		imported++
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success":  true,
-		"imported": imported,
-		"skipped":  skipped,
-	})
-
-	log.Printf("✅ Imported %d users, skipped %d", imported, skipped)
+	log.Printf("✅ Import: %d in, %d skipped", imported, skipped)
+	jsonOK(w, map[string]interface{}{"success": true, "imported": imported, "skipped": skipped})
 }
