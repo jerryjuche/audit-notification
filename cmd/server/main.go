@@ -16,38 +16,40 @@ func main() {
 
 	websocket.InitDB()
 
-	// WebSocket
+	// ── WebSocket ────────────────────────────────────────────────
 	http.HandleFunc("/ws", websocket.EchoHandler)
 
-	// Auth
-	http.HandleFunc("/register", websocket.RegisterHandler)
-	http.HandleFunc("/login",    websocket.LoginHandler)
+	// ── Auth ─────────────────────────────────────────────────────
+	http.HandleFunc("/register",       websocket.RegisterHandler)
+	http.HandleFunc("/login",          websocket.LoginHandler)
+	http.HandleFunc("/forgot-password", websocket.ForgotPasswordHandler)
+	http.HandleFunc("/reset-password", websocket.ResetPasswordHandler)
 
-	// Users & Search
+	// ── Users & Search ───────────────────────────────────────────
 	http.HandleFunc("/search", websocket.SearchUsersHandler)
 	http.HandleFunc("/online", websocket.OnlineUsersHandler)
 
-	// Communication
+	// ── Communication ────────────────────────────────────────────
 	http.HandleFunc("/audit",     websocket.AuditHandler)
 	http.HandleFunc("/reply",     websocket.ReplyHandler)
 	http.HandleFunc("/broadcast", websocket.BroadcastHandler)
 	http.HandleFunc("/feedback",  websocket.FeedbackHandler)
 
-	// Admin
-	http.HandleFunc("/import",                 websocket.ImportUsersHandler)
-	http.HandleFunc("/admin/users",            websocket.GetAllUsersHandler)
-	http.HandleFunc("/admin/feedback",         websocket.GetFeedbackHandler)
-	http.HandleFunc("/admin/feedback/update",  websocket.UpdateFeedbackHandler)
-	http.HandleFunc("/admin/stats",            websocket.SystemStatsHandler)
+	// ── Admin ────────────────────────────────────────────────────
+	http.HandleFunc("/import",               websocket.ImportUsersHandler)
+	http.HandleFunc("/admin/users",          websocket.GetAllUsersHandler)
+	http.HandleFunc("/admin/feedback",       websocket.GetFeedbackHandler)
+	http.HandleFunc("/admin/feedback/update", websocket.UpdateFeedbackHandler)
+	http.HandleFunc("/admin/stats",          websocket.SystemStatsHandler)
 
-	// Static files
+	// ── Static client ────────────────────────────────────────────
 	http.Handle("/", http.FileServer(http.Dir("./client")))
 
-	log.Printf("🚀 Server starting on :%s", port)
-	log.Printf("📡 WebSocket : ws://localhost:%s/ws", port)
-	log.Printf("🌐 Client    : http://localhost:%s", port)
+	log.Printf("Server starting on :%s", port)
+	log.Printf("WebSocket  : ws://localhost:%s/ws", port)
+	log.Printf("Client     : http://localhost:%s", port)
 
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		log.Fatalf("❌ Server error: %v", err)
+		log.Fatalf("Server error: %v", err)
 	}
 }

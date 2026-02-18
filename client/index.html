@@ -5,1444 +5,361 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache,no-store,must-revalidate">
 <title>Nexus Audit · Real-Time Compliance Platform</title>
-
-<!-- Professional Font Stack -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Sora:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<!-- SVG Icon Sprite -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="ic-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+  </symbol>
+  <symbol id="ic-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+  </symbol>
+  <symbol id="ic-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </symbol>
+  <symbol id="ic-radio" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/>
+  </symbol>
+  <symbol id="ic-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+  </symbol>
+  <symbol id="ic-message" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </symbol>
+  <symbol id="ic-bar-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+  </symbol>
+  <symbol id="ic-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+  </symbol>
+  <symbol id="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </symbol>
+  <symbol id="ic-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+  </symbol>
+  <symbol id="ic-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+  </symbol>
+  <symbol id="ic-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+  </symbol>
+  <symbol id="ic-logout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+  </symbol>
+  <symbol id="ic-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+  </symbol>
+  <symbol id="ic-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+  </symbol>
+  <symbol id="ic-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+  </symbol>
+  <symbol id="ic-reply" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/>
+  </symbol>
+  <symbol id="ic-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+  </symbol>
+  <symbol id="ic-wifi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>
+  </symbol>
+  <symbol id="ic-wifi-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a11 11 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.56 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>
+  </symbol>
+  <symbol id="ic-map-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+  </symbol>
+  <symbol id="ic-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.72 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.63 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6.23 6.23l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+  </symbol>
+  <symbol id="ic-whatsapp" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
+  </symbol>
+  <symbol id="ic-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+  </symbol>
+  <symbol id="ic-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+  </symbol>
+  <symbol id="ic-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+  </symbol>
+  <symbol id="ic-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+  </symbol>
+  <symbol id="ic-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+  </symbol>
+  <symbol id="ic-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+  </symbol>
+  <symbol id="ic-clipboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+  </symbol>
+  <symbol id="ic-trending" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+  </symbol>
+  <symbol id="ic-git" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/>
+  </symbol>
+  <symbol id="ic-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+  </symbol>
+</svg>
 
 <style>
-/* ═══════════════════════════════════════════════════════════════
-   DESIGN SYSTEM - PROFESSIONAL ENTERPRISE THEME
-   ═══════════════════════════════════════════════════════════════ */
-
 :root {
-  /* ─── Color Palette: Deep Ocean Blue Theme ─────────────── */
-  --bg0: #080b12;           /* Deep space black */
-  --bg1: #0f1419;           /* Primary surface */
-  --bg2: #161d27;           /* Secondary surface */
-  --bg3: #1e2838;           /* Elevated surface */
-  --bg4: #283347;           /* Hover surface */
-
-  --br: #1e2838;            /* Subtle border */
-  --br2: #2d3b52;           /* Medium border */
-  --br3: #3d4d6b;           /* Strong border */
-
-  --t0: #f0f4f9;            /* Primary text - crisp white */
-  --t1: #a0aec0;            /* Secondary text */
-  --t2: #7a8599;            /* Tertiary text */
-  --t3: #4a5568;            /* Muted text */
-
-  /* ─── Accent Colors: Professional Palette ─────────────── */
-  --primary: #2D9CDB;       /* Refined blue */
-  --primary-light: #56CCF2; /* Light blue */
-  --primary-dark: #1976D2;  /* Dark blue */
-  --primary-glow: rgba(45, 156, 219, 0.25);
-
-  --success: #27AE60;       /* Professional green */
-  --success-light: #6FCF97; 
-  --success-glow: rgba(39, 174, 96, 0.2);
-
-  --warning: #F2994A;       /* Warm orange */
-  --warning-light: #F2C94C;
-  --warning-glow: rgba(242, 153, 74, 0.2);
-
-  --error: #EB5757;         /* Clear red */
-  --error-light: #F66;
-  --error-glow: rgba(235, 87, 87, 0.2);
-
-  --accent: #9B51E0;        /* Premium purple */
-  --accent-light: #BB6BD9;
-  --accent-glow: rgba(155, 81, 224, 0.2);
-
-  /* ─── Typography ─────────────────────────────────────── */
-  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-accent: 'Space Grotesk', sans-serif;
-  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
-
-  /* ─── Spacing Scale ──────────────────────────────────── */
-  --space-xs: 0.5rem;
-  --space-sm: 0.75rem;
-  --space-md: 1rem;
-  --space-lg: 1.5rem;
-  --space-xl: 2rem;
-  --space-2xl: 3rem;
-
-  /* ─── Border Radius ──────────────────────────────────── */
-  --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.25rem;
-  --radius-2xl: 1.5rem;
-  --radius-full: 9999px;
-
-  /* ─── Shadows ────────────────────────────────────────── */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --shadow-xl: 0 12px 36px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 24px var(--primary-glow);
-  --shadow-glow-accent: 0 0 24px var(--accent-glow);
-
-  /* ─── Transitions ────────────────────────────────────── */
-  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-bounce: 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-
-  /* ─── Z-Index Scale ──────────────────────────────────── */
-  --z-base: 1;
-  --z-dropdown: 100;
-  --z-sticky: 200;
-  --z-overlay: 1000;
-  --z-modal: 2000;
-  --z-toast: 3000;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   GLOBAL RESET & BASE STYLES
-   ═══════════════════════════════════════════════════════════════ */
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-body {
-  font-family: var(--font-body);
-  background: var(--bg0);
-  color: var(--t0);
-  min-height: 100vh;
-  line-height: 1.6;
-  position: relative;
-  overflow-x: hidden;
-}
-
-/* Animated gradient background */
-body::before {
-  content: '';
-  position: fixed;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(ellipse at 20% 30%, rgba(45, 156, 219, 0.08) 0%, transparent 50%),
-              radial-gradient(ellipse at 80% 70%, rgba(155, 81, 224, 0.06) 0%, transparent 50%);
-  animation: gradientShift 20s ease infinite;
-  pointer-events: none;
-  z-index: 0;
-}
-
-@keyframes gradientShift {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  33% { transform: translate(5%, -5%) rotate(1deg); }
-  66% { transform: translate(-5%, 5%) rotate(-1deg); }
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   LAYOUT CONTAINERS
-   ═══════════════════════════════════════════════════════════════ */
-
-.wrap {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: var(--space-lg);
-  position: relative;
-  z-index: var(--z-base);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   HEADER - Premium Navigation
-   ═══════════════════════════════════════════════════════════════ */
-
-.hdr {
-  background: rgba(15, 20, 25, 0.85);
-  backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid var(--br2);
-  padding: 1rem 0;
-  margin-bottom: var(--space-xl);
-  position: sticky;
-  top: 0;
-  z-index: var(--z-sticky);
-  transition: all var(--transition-smooth);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.hdr:hover {
-  border-bottom-color: var(--br3);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-}
-
-.hdr-in {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 var(--space-lg);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-/* Logo Design */
-.logo {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  cursor: pointer;
-  transition: all var(--transition-base);
-  position: relative;
-}
-
-.logo:hover {
-  transform: translateY(-1px);
-}
-
-.logo-ic {
-  width: 42px;
-  height: 42px;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  transition: all var(--transition-smooth);
-  box-shadow: var(--shadow-md), 0 0 20px var(--primary-glow);
-  position: relative;
-  overflow: hidden;
-}
-
-.logo-ic::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.15) 100%);
-  opacity: 0;
-  transition: opacity var(--transition-smooth);
-}
-
-.logo:hover .logo-ic {
-  transform: rotate(-5deg) scale(1.05);
-  box-shadow: var(--shadow-lg), 0 0 30px var(--primary-glow);
-}
-
-.logo:hover .logo-ic::before {
-  opacity: 1;
-}
-
-/* Header Right Section */
-.hdr-r {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-}
-
-#hdrUser {
-  color: var(--t1);
-  font-size: 0.9375rem;
-  font-family: var(--font-mono);
-  font-weight: 500;
-  padding: 0.5rem 0.875rem;
-  background: var(--bg2);
-  border: 1px solid var(--br);
-  border-radius: var(--radius-md);
-  transition: all var(--transition-base);
-}
-
-#hdrUser:hover {
-  color: var(--t0);
-  border-color: var(--primary);
-  background: var(--bg3);
-  transform: translateY(-1px);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   CARDS - Premium Container Design
-   ═══════════════════════════════════════════════════════════════ */
-
-.card {
-  background: var(--bg1);
-  border: 1px solid var(--br);
-  border-radius: var(--radius-xl);
-  padding: var(--space-xl);
-  margin-bottom: var(--space-xl);
-  transition: all var(--transition-smooth);
-  position: relative;
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-}
-
-.card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--primary-light), transparent);
-  opacity: 0;
-  transition: opacity var(--transition-smooth);
-}
-
-.card:hover {
-  border-color: var(--br3);
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-lg), 0 0 0 1px var(--br3);
-}
-
-.card:hover::before {
-  opacity: 0.5;
-}
-
-/* Card Header */
-.ch {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-lg);
-  padding-bottom: var(--space-md);
-  border-bottom: 1px solid var(--br);
-  transition: border-color var(--transition-base);
-}
-
-.card:hover .ch {
-  border-bottom-color: var(--br2);
-}
-
-.ct {
-  font-family: var(--font-display);
-  font-size: 1.125rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   TABS - Modern Tab Navigation
-   ═══════════════════════════════════════════════════════════════ */
-
-.tabs {
-  display: flex;
-  gap: 0.375rem;
-  background: var(--bg2);
-  padding: 0.375rem;
-  border-radius: var(--radius-lg);
-  margin-bottom: var(--space-xl);
-  border: 1px solid var(--br);
-  transition: all var(--transition-smooth);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.tab {
-  flex: 1;
-  padding: 0.75rem 1.25rem;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-md);
-  color: var(--t2);
-  font-weight: 600;
-  font-size: 0.9375rem;
-  cursor: pointer;
-  transition: all var(--transition-smooth);
-  font-family: var(--font-display);
-  position: relative;
-  overflow: hidden;
-}
-
-.tab::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-  opacity: 0;
-  transition: opacity var(--transition-smooth);
-  border-radius: var(--radius-md);
-}
-
-.tab span {
-  position: relative;
-  z-index: 1;
-}
-
-.tab:hover:not(.on) {
-  color: var(--t0);
-  background: var(--bg3);
-  transform: translateY(-1px);
-}
-
-.tab.on {
-  color: #ffffff;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-  box-shadow: var(--shadow-md), 0 0 16px var(--primary-glow);
-  transform: translateY(-1px);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   FORMS - Professional Input Design
-   ═══════════════════════════════════════════════════════════════ */
-
-.fg {
-  margin-bottom: var(--space-lg);
-}
-
-label {
-  display: block;
-  margin-bottom: var(--space-xs);
-  color: var(--t0);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-family: var(--font-display);
-  transition: color var(--transition-base);
-}
-
-input,
-textarea,
-select {
-  width: 100%;
-  padding: 0.875rem 1.125rem;
-  background: var(--bg2);
-  border: 1px solid var(--br);
-  border-radius: var(--radius-md);
-  color: var(--t0);
-  font-size: 0.9375rem;
-  font-family: var(--font-body);
-  transition: all var(--transition-smooth);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-input::placeholder,
-textarea::placeholder {
-  color: var(--t3);
-}
-
-input:focus,
-textarea:focus,
-select:focus {
-  outline: none;
-  border-color: var(--primary);
-  background: var(--bg3);
-  box-shadow: 0 0 0 4px var(--primary-glow), inset 0 1px 3px rgba(0, 0, 0, 0.2);
-  transform: translateY(-1px);
-}
-
-textarea {
-  resize: vertical;
-  min-height: 120px;
-  line-height: 1.6;
-}
-
-select {
-  cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a0aec0' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 1rem center;
-  padding-right: 2.5rem;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   BUTTONS - Premium Interactive Elements
-   ═══════════════════════════════════════════════════════════════ */
-
-button {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 0.9375rem;
-  font-weight: 600;
-  font-family: var(--font-display);
-  cursor: pointer;
-  transition: all var(--transition-smooth);
-  position: relative;
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-}
-
-button::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
-  opacity: 0;
-  transition: opacity var(--transition-smooth);
-}
-
-button:hover::before {
-  opacity: 1;
-}
-
-/* Primary Button */
-.bp {
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  color: #ffffff;
-  border: 1px solid transparent;
-}
-
-.bp:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md), 0 0 20px var(--primary-glow);
-}
-
-.bp:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-/* Success Button */
-.bs {
-  background: linear-gradient(135deg, var(--success), var(--success-light));
-  color: #ffffff;
-  border: 1px solid transparent;
-}
-
-.bs:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md), 0 0 20px var(--success-glow);
-}
-
-/* Danger Button */
-.bd {
-  background: linear-gradient(135deg, var(--error), var(--error-light));
-  color: #ffffff;
-  border: 1px solid transparent;
-}
-
-.bd:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md), 0 0 20px var(--error-glow);
-}
-
-/* Ghost/Secondary Button */
-.bg {
-  background: var(--bg2);
-  color: var(--t0);
-  border: 1px solid var(--br2);
-}
-
-.bg:hover:not(:disabled) {
-  color: var(--primary-light);
-  border-color: var(--primary);
-  background: var(--bg3);
-  transform: translateY(-1px);
-}
-
-/* Button Modifiers */
-.bfull {
-  width: 100%;
-}
-
-.bsm {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-}
-
-button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  transform: none !important;
-  box-shadow: none !important;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   GRID LAYOUTS
-   ═══════════════════════════════════════════════════════════════ */
-
-.g2 {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-lg);
-}
-
-.g4 {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-lg);
-}
-
-@media (max-width: 768px) {
-  .g2,
-  .g4 {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   STAT CARDS - Data Visualization
-   ═══════════════════════════════════════════════════════════════ */
-
-.sc {
-  background: var(--bg2);
-  border: 1px solid var(--br);
-  padding: var(--space-lg);
-  border-radius: var(--radius-lg);
-  transition: all var(--transition-smooth);
-  position: relative;
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-}
-
-.sc::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--primary), var(--accent));
-  transform: scaleX(0);
-  transition: transform var(--transition-smooth);
-  transform-origin: left;
-}
-
-.sc:hover {
-  transform: translateY(-3px);
-  border-color: var(--br3);
-  box-shadow: var(--shadow-md);
-}
-
-.sc:hover::before {
-  transform: scaleX(1);
-}
-
-.sl {
-  font-size: 0.75rem;
-  color: var(--t2);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: var(--space-sm);
-  font-weight: 600;
-  font-family: var(--font-display);
-  transition: color var(--transition-base);
-}
-
-.sc:hover .sl {
-  color: var(--t1);
-}
-
-.sv {
-  font-size: 2.25rem;
-  font-weight: 800;
-  font-family: var(--font-display);
-  background: linear-gradient(135deg, var(--primary-light), var(--accent-light));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  line-height: 1.2;
-  transition: transform var(--transition-smooth);
-  display: inline-block;
-}
-
-.sc:hover .sv {
-  transform: scale(1.08);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   BADGES - Status Indicators
-   ═══════════════════════════════════════════════════════════════ */
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: 0.375rem 0.875rem;
-  border-radius: var(--radius-full);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  font-family: var(--font-display);
-  transition: all var(--transition-smooth);
-  border: 1px solid transparent;
-}
-
-.b-on {
-  background: linear-gradient(135deg, rgba(39, 174, 96, 0.15), rgba(111, 207, 151, 0.1));
-  color: var(--success-light);
-  border-color: rgba(39, 174, 96, 0.3);
-}
-
-.b-off {
-  background: rgba(122, 133, 153, 0.1);
-  color: var(--t2);
-  border-color: var(--br);
-}
-
-.bdot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: currentColor;
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  box-shadow: 0 0 8px currentColor;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(1.15);
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   NOTIFICATION BELL - Interactive Alert System
-   ═══════════════════════════════════════════════════════════════ */
-
-.nbell {
-  position: relative;
-  cursor: pointer;
-  padding: 0.625rem 0.75rem;
-  background: var(--bg2);
-  border: 1px solid var(--br);
-  border-radius: var(--radius-md);
-  font-size: 1.25rem;
-  transition: all var(--transition-smooth);
-  box-shadow: var(--shadow-sm);
-}
-
-.nbell:hover {
-  background: var(--bg3);
-  border-color: var(--primary);
-  transform: translateY(-2px) rotate(15deg);
-  box-shadow: var(--shadow-md), 0 0 16px var(--primary-glow);
-}
-
-.nbell:active {
-  transform: translateY(0) rotate(0deg);
-}
-
-.nbadge {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  min-width: 20px;
-  height: 20px;
-  background: linear-gradient(135deg, var(--error), var(--error-light));
-  border: 2px solid var(--bg1);
-  border-radius: var(--radius-full);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-  font-family: var(--font-display);
-  box-shadow: 0 0 12px var(--error-glow);
-  animation: badgeBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-}
-
-@keyframes badgeBounce {
-  0% {
-    transform: scale(0);
-  }
-  50% {
-    transform: scale(1.2);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   NOTIFICATION PANEL - Sliding Drawer
-   ═══════════════════════════════════════════════════════════════ */
-
-.npanel {
-  position: fixed;
-  top: 90px;
-  right: var(--space-lg);
-  width: 420px;
-  max-height: calc(100vh - 120px);
-  background: var(--bg1);
-  border: 1px solid var(--br2);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-xl);
-  overflow: hidden;
-  z-index: var(--z-modal);
-  display: flex;
-  flex-direction: column;
-  transition: all var(--transition-smooth);
-  backdrop-filter: blur(20px);
-}
-
-.npanel:not(.hidden) {
-  animation: panelSlide 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-}
-
-@keyframes panelSlide {
-  from {
-    opacity: 0;
-    transform: translateX(100px) scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0) scale(1);
-  }
-}
-
-.nphdr {
-  padding: var(--space-lg);
-  border-bottom: 1px solid var(--br);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: 700;
-  font-size: 1.125rem;
-  font-family: var(--font-display);
-  background: var(--bg2);
-  transition: background var(--transition-base);
-}
-
-.nlist {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--space-sm);
-}
-
-.ni {
-  padding: var(--space-md);
-  border-bottom: 1px solid var(--br);
-  cursor: pointer;
-  transition: all var(--transition-smooth);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--space-xs);
-  border-left: 3px solid transparent;
-}
-
-.ni:hover {
-  background: var(--bg2);
-  transform: translateX(4px);
-  border-left-color: var(--primary);
-}
-
-.ni.unread {
-  background: linear-gradient(90deg, var(--primary-glow) 0%, transparent 100%);
-  border-left-color: var(--primary);
-  box-shadow: inset 0 0 8px var(--primary-glow);
-}
-
-.ntime {
-  font-size: 0.75rem;
-  color: var(--t2);
-  font-family: var(--font-mono);
-  margin-bottom: 0.375rem;
-  transition: color var(--transition-base);
-  font-weight: 500;
-}
-
-.nmsg {
-  font-size: 0.9375rem;
-  color: var(--t0);
-  word-break: break-word;
-  line-height: 1.5;
-  transition: color var(--transition-base);
-}
-
-.rbtn {
-  margin-top: var(--space-sm);
-  padding: 0.375rem 0.875rem;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  color: #ffffff;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-size: 0.8125rem;
-  cursor: pointer;
-  font-family: var(--font-display);
-  font-weight: 600;
-  transition: all var(--transition-smooth);
-  box-shadow: var(--shadow-sm);
-}
-
-.rbtn:hover {
-  transform: scale(1.03) translateY(-1px);
-  box-shadow: var(--shadow-md), 0 0 12px var(--primary-glow);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   TOAST NOTIFICATIONS - Slide-in Alerts
-   ═══════════════════════════════════════════════════════════════ */
-
-.tc {
-  position: fixed;
-  top: var(--space-lg);
-  right: var(--space-lg);
-  z-index: var(--z-toast);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  max-width: 400px;
-  pointer-events: none;
-}
-
-.toast {
-  background: var(--bg1);
-  border: 1px solid var(--br2);
-  border-radius: var(--radius-lg);
-  padding: var(--space-md) var(--space-lg);
-  box-shadow: var(--shadow-xl);
-  display: flex;
-  gap: var(--space-md);
-  backdrop-filter: blur(20px);
-  pointer-events: auto;
-  animation: toastSlide 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  border-left: 4px solid;
-}
-
-.toast.audit {
-  border-left-color: var(--primary);
-  box-shadow: var(--shadow-xl), 0 0 24px var(--primary-glow);
-}
-
-.toast.success {
-  border-left-color: var(--success);
-  box-shadow: var(--shadow-xl), 0 0 24px var(--success-glow);
-}
-
-.toast.error {
-  border-left-color: var(--error);
-  box-shadow: var(--shadow-xl), 0 0 24px var(--error-glow);
-}
-
-.toast.info {
-  border-left-color: var(--t1);
-  box-shadow: var(--shadow-xl);
-}
-
-@keyframes toastSlide {
-  from {
-    transform: translateX(120%) scale(0.8);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0) scale(1);
-    opacity: 1;
-  }
-}
-
-.ticon {
-  font-size: 1.5rem;
-  flex-shrink: 0;
-  transition: transform var(--transition-smooth);
-  filter: drop-shadow(0 0 8px currentColor);
-}
-
-.toast:hover .ticon {
-  transform: rotate(360deg) scale(1.1);
-}
-
-.tbody {
-  flex: 1;
-}
-
-.ttitle {
-  font-weight: 700;
-  font-size: 0.9375rem;
-  margin-bottom: 0.25rem;
-  font-family: var(--font-display);
-  transition: color var(--transition-base);
-}
-
-.tmsg {
-  font-size: 0.875rem;
-  color: var(--t1);
-  line-height: 1.5;
-  transition: color var(--transition-base);
-}
-
-.tcls {
-  background: none;
-  border: none;
-  color: var(--t2);
-  cursor: pointer;
-  font-size: 1.25rem;
-  padding: 0;
-  width: auto;
-  transition: all var(--transition-smooth);
-  flex-shrink: 0;
-}
-
-.tcls:hover {
-  color: var(--error);
-  transform: scale(1.3) rotate(90deg);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   ACTIVITY LOG - Terminal Style Monitor
-   ═══════════════════════════════════════════════════════════════ */
-
-.log {
-  background: var(--bg0);
-  border: 1px solid var(--br);
-  border-radius: var(--radius-md);
-  padding: var(--space-md);
-  max-height: 320px;
-  overflow-y: auto;
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-  transition: all var(--transition-smooth);
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
-}
-
-.log:hover {
-  border-color: var(--br2);
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 16px var(--primary-glow);
-}
-
-.lr {
-  padding: 0.375rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-  display: flex;
-  gap: var(--space-sm);
-  transition: all var(--transition-base);
-  border-radius: var(--radius-sm);
-}
-
-.lr:hover {
-  background: var(--bg2);
-  padding-left: var(--space-xs);
-}
-
-.lt {
-  color: var(--t3);
-  flex-shrink: 0;
-  font-weight: 500;
-  transition: color var(--transition-base);
-}
-
-.lm {
-  color: var(--t1);
-  transition: color var(--transition-base);
-  line-height: 1.5;
-}
-
-.l-success .lm {
-  color: var(--success-light);
-  text-shadow: 0 0 8px var(--success-glow);
-}
-
-.l-error .lm {
-  color: var(--error-light);
-  text-shadow: 0 0 8px var(--error-glow);
-}
-
-.l-warn .lm {
-  color: var(--warning-light);
-  text-shadow: 0 0 8px var(--warning-glow);
-}
-
-.l-info .lm {
-  color: var(--primary-light);
-  text-shadow: 0 0 8px var(--primary-glow);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   SEARCH DROPDOWN - Autocomplete Interface
-   ═══════════════════════════════════════════════════════════════ */
-
-.swrap {
-  position: relative;
-}
-
-.sdrop {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  left: 0;
-  right: 0;
-  background: var(--bg2);
-  border: 1px solid var(--br2);
-  border-radius: var(--radius-md);
-  max-height: 280px;
-  overflow-y: auto;
-  z-index: var(--z-dropdown);
-  box-shadow: var(--shadow-lg);
-  backdrop-filter: blur(20px);
-  animation: dropFade 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes dropFade {
-  from {
-    opacity: 0;
-    transform: translateY(-12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.sitem {
-  padding: var(--space-sm) var(--space-md);
-  cursor: pointer;
-  border-bottom: 1px solid var(--br);
-  transition: all var(--transition-smooth);
-  position: relative;
-}
-
-.sitem::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--primary);
-  transform: scaleY(0);
-  transition: transform var(--transition-smooth);
-}
-
-.sitem:hover {
-  background: var(--bg3);
-  padding-left: calc(var(--space-md) + 6px);
-}
-
-.sitem:hover::before {
-  transform: scaleY(1);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   USER TABLE - Data Grid
-   ═══════════════════════════════════════════════════════════════ */
-
-.utbl {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9375rem;
-}
-
-.utbl th {
-  padding: var(--space-md);
-  text-align: left;
-  font-size: 0.75rem;
-  color: var(--t2);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-weight: 700;
-  font-family: var(--font-display);
-  background: var(--bg0);
-  border-bottom: 2px solid var(--br2);
-  position: sticky;
-  top: 0;
-  transition: all var(--transition-base);
-  z-index: 10;
-}
-
-.utbl td {
-  padding: var(--space-md);
-  border-bottom: 1px solid var(--br);
-  color: var(--t1);
-  transition: all var(--transition-smooth);
-}
-
-.utbl tr {
-  transition: all var(--transition-smooth);
-}
-
-.utbl tr:hover td {
-  background: var(--bg2);
-  color: var(--t0);
-}
-
-.uav {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 0.875rem;
-  font-family: var(--font-display);
-  flex-shrink: 0;
-  transition: all var(--transition-smooth);
-  box-shadow: 0 0 12px var(--primary-glow);
-}
-
-.uav:hover {
-  transform: rotate(360deg) scale(1.1);
-  box-shadow: 0 0 20px var(--accent-glow);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   FILE UPLOAD - Styled Input
-   ═══════════════════════════════════════════════════════════════ */
-
-.fil {
-  display: none;
-}
-
-.flab {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: 0.875rem 1.5rem;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  color: #ffffff;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.9375rem;
-  font-family: var(--font-display);
-  transition: all var(--transition-smooth);
-  box-shadow: var(--shadow-sm);
-}
-
-.flab:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md), 0 0 20px var(--primary-glow);
-}
-
-.flab:active {
-  transform: translateY(0);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   MODAL OVERLAY - Dialog System
-   ═══════════════════════════════════════════════════════════════ */
-
-.mover {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: var(--z-modal);
-  animation: overlayFade 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: var(--space-lg);
-}
-
-@keyframes overlayFade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.modal {
-  background: var(--bg1);
-  border: 1px solid var(--br2);
-  border-radius: var(--radius-xl);
-  padding: var(--space-2xl);
-  width: 100%;
-  max-width: 520px;
-  box-shadow: var(--shadow-xl);
-  animation: modalScale 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-@keyframes modalScale {
-  from {
-    opacity: 0;
-    transform: scale(0.85) translateY(40px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.mtitle {
-  font-size: 1.375rem;
-  font-weight: 700;
-  font-family: var(--font-display);
-  margin-bottom: var(--space-lg);
-  color: var(--t0);
-  transition: color var(--transition-base);
-}
-
-.origmsg {
-  background: var(--bg2);
-  border-left: 4px solid var(--primary);
-  border-radius: var(--radius-md);
-  padding: var(--space-md);
-  margin-bottom: var(--space-lg);
-  font-size: 0.9375rem;
-  color: var(--t1);
-  line-height: 1.6;
-  transition: all var(--transition-base);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.origmsg:hover {
-  background: var(--bg3);
-  border-left-color: var(--accent);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   UTILITY CLASSES
-   ═══════════════════════════════════════════════════════════════ */
-
-.hidden {
-  display: none !important;
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: 0.5rem 0.875rem;
-  background: var(--bg3);
-  border: 1px solid var(--br);
-  border-radius: var(--radius-full);
-  font-size: 0.875rem;
-  font-family: var(--font-mono);
-  font-weight: 500;
-  transition: all var(--transition-smooth);
-  box-shadow: var(--shadow-sm);
-}
-
-.chip:hover {
-  transform: translateY(-2px) scale(1.03);
-  box-shadow: var(--shadow-md);
-  border-color: var(--primary);
-  background: var(--bg4);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   SCROLLBAR STYLING
-   ═══════════════════════════════════════════════════════════════ */
-
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--bg2);
-  border-radius: var(--radius-sm);
-}
-
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--primary), var(--accent));
-  border-radius: var(--radius-sm);
-  transition: background var(--transition-base);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, var(--primary-light), var(--accent-light));
-  box-shadow: 0 0 8px var(--primary-glow);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   RESPONSIVE DESIGN
-   ═══════════════════════════════════════════════════════════════ */
-
-@media (max-width: 1024px) {
-  :root {
-    --space-xl: 1.5rem;
-    --space-2xl: 2rem;
-  }
-  
-  .wrap {
-    padding: var(--space-md);
-  }
-  
-  .hdr-in {
-    padding: 0 var(--space-md);
-  }
-}
-
-@media (max-width: 768px) {
-  .logo {
-    font-size: 1rem;
-  }
-  
-  .logo-ic {
-    width: 36px;
-    height: 36px;
-  }
-  
-  #hdrUser {
-    display: none;
-  }
-  
-  .npanel {
-    width: calc(100% - 2rem);
-    right: 1rem;
-  }
-  
-  .tc {
-    right: 1rem;
-    left: 1rem;
-    max-width: none;
-  }
-  
-  .card {
-    padding: var(--space-lg);
-  }
-  
-  .modal {
-    padding: var(--space-xl);
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   ANIMATIONS & MICRO-INTERACTIONS
-   ═══════════════════════════════════════════════════════════════ */
-
-@keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-  100% {
-    background-position: 1000px 0;
-  }
-}
-
-/* Focus visible for accessibility */
-*:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
-}
-
-/* Selection styling */
-::selection {
-  background: var(--primary-glow);
-  color: var(--t0);
-}
-
-::-moz-selection {
-  background: var(--primary-glow);
-  color: var(--t0);
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+  --c0: #0f1923;
+  --c1: #1a2535;
+  --c2: #1e2d42;
+  --c3: #243350;
+  --c4: #2d3f60;
+  --br0: #243050;
+  --br1: #2d3f62;
+  --br2: #3d5282;
+  --t0: #e8f0fe;
+  --t1: #8fa3c8;
+  --t2: #5a7096;
+  --t3: #3a4f72;
+  --cyan: #1eb8d0;
+  --cyan2: #0e8fa4;
+  --cyan-gl: rgba(30,184,208,0.18);
+  --blue: #2563c4;
+  --blue2: #1a4fa0;
+  --blue-gl: rgba(37,99,196,0.2);
+  --green: #22c97a;
+  --green-gl: rgba(34,201,122,0.18);
+  --amber: #f59e3a;
+  --amber-gl: rgba(245,158,58,0.18);
+  --red: #ef4565;
+  --red-gl: rgba(239,69,101,0.18);
+  --purple: #7c5cbf;
+  --font-hd: 'Bricolage Grotesque', -apple-system, sans-serif;
+  --font-bd: 'DM Sans', -apple-system, sans-serif;
+  --font-mn: 'JetBrains Mono', monospace;
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 18px; --r-full: 9999px;
+  --sh-sm: 0 1px 4px rgba(0,0,0,.35);
+  --sh-md: 0 4px 16px rgba(0,0,0,.45);
+  --sh-lg: 0 8px 32px rgba(0,0,0,.55);
+  --tr: .18s cubic-bezier(.4,0,.2,1);
+  --tr-s: .28s cubic-bezier(.4,0,.2,1);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+body{font-family:var(--font-bd);background:var(--c0);color:var(--t0);min-height:100vh;overflow-x:hidden;line-height:1.6}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 15% 20%,rgba(30,184,208,.06) 0%,transparent 55%),radial-gradient(ellipse 60% 50% at 85% 75%,rgba(37,99,196,.07) 0%,transparent 55%);pointer-events:none;z-index:0}
+svg.ic{display:inline-block;vertical-align:middle;flex-shrink:0}
+
+/* ── LAYOUT ── */
+.wrap{max-width:1420px;margin:0 auto;padding:24px;position:relative;z-index:1}
+
+/* ── HEADER ── */
+.hdr{background:rgba(15,25,35,.88);backdrop-filter:blur(24px) saturate(160%);border-bottom:1px solid var(--br0);padding:0;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(0,0,0,.4)}
+.hdr-in{max-width:1420px;margin:0 auto;padding:0 24px;height:62px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:11px;font-family:var(--font-hd);font-size:1.15rem;font-weight:700;letter-spacing:-.02em;cursor:default;user-select:none}
+.logo-ic{width:38px;height:38px;background:linear-gradient(135deg,var(--cyan),var(--blue));border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px var(--cyan-gl),var(--sh-sm)}
+.hdr-r{display:flex;align-items:center;gap:10px}
+#hdrUser{color:var(--t1);font-size:.8125rem;font-family:var(--font-mn);font-weight:500;padding:6px 12px;background:var(--c2);border:1px solid var(--br0);border-radius:var(--r-md);transition:var(--tr)}
+#hdrUser:hover{color:var(--t0);border-color:var(--cyan);background:var(--c3)}
+
+/* ── CARDS ── */
+.card{background:var(--c1);border:1px solid var(--br0);border-radius:var(--r-xl);padding:22px;margin-bottom:20px;transition:border-color var(--tr-s),box-shadow var(--tr-s);position:relative;overflow:hidden}
+.card:hover{border-color:var(--br1)}
+.card::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(30,184,208,.3),transparent);opacity:0;transition:opacity var(--tr-s)}
+.card:hover::after{opacity:1}
+.ch{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--br0)}
+.ct{font-family:var(--font-hd);font-size:1rem;font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:9px}
+.ct-ic{width:30px;height:30px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center}
+.ct-ic.cyan{background:var(--cyan-gl);color:var(--cyan)}
+.ct-ic.blue{background:var(--blue-gl);color:var(--cyan)}
+.ct-ic.green{background:var(--green-gl);color:var(--green)}
+.ct-ic.amber{background:var(--amber-gl);color:var(--amber)}
+.ct-ic.red{background:var(--red-gl);color:var(--red)}
+.ct-ic.purple{background:rgba(124,92,191,.18);color:var(--purple)}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:4px;background:var(--c2);padding:4px;border-radius:var(--r-lg);margin-bottom:22px;border:1px solid var(--br0)}
+.tab{flex:1;padding:10px 16px;background:transparent;border:none;border-radius:var(--r-md);color:var(--t2);font-weight:600;font-size:.9rem;cursor:pointer;transition:all var(--tr-s);font-family:var(--font-hd);display:flex;align-items:center;justify-content:center;gap:7px}
+.tab:hover:not(.on){color:var(--t0);background:var(--c3)}
+.tab.on{background:linear-gradient(135deg,var(--cyan2),var(--blue2));color:#fff;box-shadow:0 0 16px var(--cyan-gl),var(--sh-sm)}
+
+/* ── FORMS ── */
+.fg{margin-bottom:16px}
+label{display:block;margin-bottom:6px;color:var(--t1);font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-family:var(--font-hd)}
+.inp-wrap{position:relative}
+.inp-ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--t2);pointer-events:none;transition:color var(--tr)}
+.inp-wrap input,.inp-wrap textarea,.inp-wrap select{padding-left:40px}
+input,textarea,select{width:100%;padding:11px 14px;background:var(--c2);border:1px solid var(--br0);border-radius:var(--r-md);color:var(--t0);font-size:.9375rem;font-family:var(--font-bd);transition:all var(--tr-s);box-shadow:inset 0 1px 3px rgba(0,0,0,.2)}
+input::placeholder,textarea::placeholder{color:var(--t3)}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--cyan);background:var(--c3);box-shadow:0 0 0 3px var(--cyan-gl),inset 0 1px 3px rgba(0,0,0,.2)}
+.inp-wrap input:focus~.inp-ic,.inp-wrap textarea:focus~.inp-ic,.inp-wrap select:focus+.inp-ic,.inp-wrap:focus-within .inp-ic{color:var(--cyan)}
+textarea{resize:vertical;min-height:110px;line-height:1.6;padding-top:12px}
+select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235a7096' d='M6 9L1 4h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
+.pwd-wrap{position:relative}
+.pwd-wrap input{padding-right:44px}
+.pwd-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--t2);cursor:pointer;padding:4px;border-radius:4px;width:auto;box-shadow:none;transition:color var(--tr)}
+.pwd-toggle:hover{color:var(--cyan)}
+
+/* ── BUTTONS ── */
+button{padding:10px 18px;border:none;border-radius:var(--r-md);font-size:.9rem;font-weight:600;font-family:var(--font-hd);cursor:pointer;transition:all var(--tr-s);display:inline-flex;align-items:center;justify-content:center;gap:7px;box-shadow:var(--sh-sm)}
+.bp{background:linear-gradient(135deg,var(--cyan),var(--blue2));color:#fff;border:1px solid transparent}
+.bp:hover:not(:disabled){transform:translateY(-2px);box-shadow:var(--sh-md),0 0 18px var(--cyan-gl)}
+.bs{background:linear-gradient(135deg,var(--green),#1aa864);color:#fff;border:1px solid transparent}
+.bs:hover:not(:disabled){transform:translateY(-2px);box-shadow:var(--sh-md),0 0 18px var(--green-gl)}
+.bd{background:linear-gradient(135deg,var(--red),#d43060);color:#fff;border:1px solid transparent}
+.bd:hover:not(:disabled){transform:translateY(-2px);box-shadow:var(--sh-md),0 0 16px var(--red-gl)}
+.bg{background:var(--c2);color:var(--t0);border:1px solid var(--br1)}
+.bg:hover:not(:disabled){color:var(--cyan);border-color:var(--cyan);background:var(--c3);transform:translateY(-1px)}
+.bfull{width:100%}
+.bsm{padding:6px 13px;font-size:.8125rem}
+button:disabled{opacity:.4;cursor:not-allowed;transform:none !important}
+button:active:not(:disabled){transform:translateY(0) !important}
+
+/* ── GRIDS ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+
+/* ── STAT CARDS ── */
+.sc{background:var(--c2);border:1px solid var(--br0);padding:20px;border-radius:var(--r-lg);transition:all var(--tr-s);position:relative;overflow:hidden}
+.sc-line{position:absolute;top:0;left:0;right:0;height:2px;border-radius:2px 2px 0 0}
+.sc:hover{border-color:var(--br2);transform:translateY(-2px);box-shadow:var(--sh-md)}
+.sl{font-size:.72rem;color:var(--t2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;font-weight:600;font-family:var(--font-hd);display:flex;align-items:center;gap:6px}
+.sv{font-size:2.1rem;font-weight:800;font-family:var(--font-hd);background:linear-gradient(135deg,var(--cyan),#6bb8ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--r-full);font-size:.75rem;font-weight:600;font-family:var(--font-hd);border:1px solid transparent}
+.b-on{background:rgba(34,201,122,.12);color:var(--green);border-color:rgba(34,201,122,.25)}
+.b-off{background:rgba(90,112,150,.1);color:var(--t2);border-color:var(--br0)}
+.bdot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.b-on .bdot{animation:pulse-dot 2s ease infinite;box-shadow:0 0 6px currentColor}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.2)}}
+
+/* ── NOTIFICATION BELL ── */
+.nbell{position:relative;cursor:pointer;padding:9px 11px;background:var(--c2);border:1px solid var(--br0);border-radius:var(--r-md);transition:all var(--tr-s);color:var(--t1)}
+.nbell:hover{background:var(--c3);border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 14px var(--cyan-gl)}
+.nbadge{position:absolute;top:-6px;right:-6px;min-width:19px;height:19px;background:var(--red);border:2px solid var(--c1);border-radius:var(--r-full);font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-hd);box-shadow:0 0 10px var(--red-gl);animation:badge-in .4s cubic-bezier(.68,-.55,.265,1.55)}
+@keyframes badge-in{from{transform:scale(0)}to{transform:scale(1)}}
+
+/* ── NOTIFICATION PANEL ── */
+.npanel{position:fixed;top:74px;right:20px;width:420px;max-height:calc(100vh - 100px);background:var(--c1);border:1px solid var(--br1);border-radius:var(--r-xl);box-shadow:var(--sh-lg),0 0 30px rgba(0,0,0,.4);overflow:hidden;z-index:2000;display:flex;flex-direction:column;backdrop-filter:blur(20px)}
+.npanel:not(.hidden){animation:panel-in .35s cubic-bezier(.4,0,.2,1)}
+@keyframes panel-in{from{opacity:0;transform:translateY(-12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.nphdr{padding:14px 16px;border-bottom:1px solid var(--br0);display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:1rem;font-family:var(--font-hd);background:var(--c2)}
+.nlist{flex:1;overflow-y:auto;padding:6px}
+.ni{padding:12px;border-radius:var(--r-md);cursor:pointer;transition:background var(--tr);margin-bottom:4px;border-left:3px solid transparent}
+.ni:hover{background:var(--c2)}
+.ni.unread{background:rgba(30,184,208,.07);border-left-color:var(--cyan)}
+.ntime{font-size:.72rem;color:var(--t2);font-family:var(--font-mn);margin-bottom:4px;font-weight:500}
+.nmsg{font-size:.9rem;color:var(--t0);word-break:break-word;line-height:1.5}
+.rbtn{margin-top:8px;padding:5px 12px;background:var(--c3);border:1px solid var(--br1);color:var(--cyan);border-radius:var(--r-sm);font-size:.8rem;cursor:pointer;font-family:var(--font-hd);font-weight:600;transition:all var(--tr);display:inline-flex;align-items:center;gap:5px;box-shadow:none}
+.rbtn:hover{background:var(--cyan);color:#fff;border-color:var(--cyan);transform:none}
+
+/* ── TOASTS ── */
+.tc{position:fixed;top:20px;right:20px;z-index:3000;display:flex;flex-direction:column;gap:10px;max-width:390px;pointer-events:none}
+.toast{background:var(--c1);border:1px solid var(--br1);border-radius:var(--r-lg);padding:14px 16px;box-shadow:var(--sh-lg);display:flex;gap:12px;pointer-events:auto;animation:toast-in .32s cubic-bezier(.4,0,.2,1);border-left:3px solid;transition:opacity .25s}
+.toast.audit{border-left-color:var(--cyan);box-shadow:var(--sh-lg),0 0 20px var(--cyan-gl)}
+.toast.success{border-left-color:var(--green);box-shadow:var(--sh-lg),0 0 20px var(--green-gl)}
+.toast.error{border-left-color:var(--red);box-shadow:var(--sh-lg),0 0 20px var(--red-gl)}
+.toast.info{border-left-color:var(--t1)}
+@keyframes toast-in{from{transform:translateX(60px);opacity:0}to{transform:translateX(0);opacity:1}}
+.ticon{flex-shrink:0;width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+.toast.audit .ticon{color:var(--cyan)}
+.toast.success .ticon{color:var(--green)}
+.toast.error .ticon{color:var(--red)}
+.toast.info .ticon{color:var(--t1)}
+.tbody{flex:1}
+.ttitle{font-weight:700;font-size:.9rem;margin-bottom:2px;font-family:var(--font-hd)}
+.tmsg{font-size:.8125rem;color:var(--t1);line-height:1.5}
+.tcls{background:none;border:none;color:var(--t2);cursor:pointer;flex-shrink:0;width:auto;box-shadow:none;padding:2px;border-radius:4px;transition:color var(--tr)}
+.tcls:hover{color:var(--red);transform:none;box-shadow:none}
+
+/* ── LOG ── */
+.log{background:#07101a;border:1px solid var(--br0);border-radius:var(--r-md);padding:10px;max-height:300px;overflow-y:auto;font-family:var(--font-mn);font-size:.78rem}
+.log:hover{border-color:var(--br1)}
+.lr{padding:5px 4px;border-bottom:1px solid rgba(255,255,255,.03);display:flex;gap:10px;border-radius:4px}
+.lr:hover{background:var(--c2);padding-left:8px}
+.lt{color:var(--t3);flex-shrink:0}
+.lm{color:var(--t1);line-height:1.5}
+.l-success .lm{color:var(--green)}
+.l-error .lm{color:var(--red)}
+.l-warn .lm{color:var(--amber)}
+.l-info .lm{color:var(--cyan)}
+
+/* ── SEARCH DROP ── */
+.swrap{position:relative}
+.sdrop{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--c3);border:1px solid var(--br1);border-radius:var(--r-md);max-height:260px;overflow-y:auto;z-index:100;box-shadow:var(--sh-lg);animation:drop-in .2s var(--tr)}
+@keyframes drop-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.sitem{padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--br0);transition:background var(--tr)}
+.sitem:hover{background:var(--c4)}
+.sitem:last-child{border-bottom:none}
+
+/* ── USER TABLE ── */
+.utbl{width:100%;border-collapse:collapse}
+.utbl th{padding:10px 12px;text-align:left;font-size:.72rem;color:var(--t2);text-transform:uppercase;letter-spacing:.1em;font-weight:700;font-family:var(--font-hd);background:var(--c0);border-bottom:1px solid var(--br1);position:sticky;top:0;z-index:10}
+.utbl td{padding:11px 12px;border-bottom:1px solid var(--br0);font-size:.875rem;color:var(--t1);transition:all var(--tr)}
+.utbl tr:hover td{background:var(--c2);color:var(--t0)}
+.uav{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--cyan2),var(--blue2));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.8125rem;font-family:var(--font-hd);flex-shrink:0}
+
+/* ── FILE UPLOAD ── */
+.fil{display:none}
+.flab{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;background:linear-gradient(135deg,var(--cyan),var(--blue2));color:#fff;border-radius:var(--r-md);cursor:pointer;font-weight:600;font-size:.9rem;font-family:var(--font-hd);transition:all var(--tr-s);box-shadow:var(--sh-sm)}
+.flab:hover{transform:translateY(-2px);box-shadow:var(--sh-md),0 0 18px var(--cyan-gl)}
+
+/* ── MODAL ── */
+.mover{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:2001;padding:20px;animation:overlay-in .2s ease}
+@keyframes overlay-in{from{opacity:0}to{opacity:1}}
+.modal{background:var(--c1);border:1px solid var(--br1);border-radius:var(--r-xl);padding:26px;width:100%;max-width:500px;box-shadow:var(--sh-lg);animation:modal-in .3s cubic-bezier(.34,1.56,.64,1);max-height:90vh;overflow-y:auto}
+@keyframes modal-in{from{opacity:0;transform:scale(.93) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.mtitle{font-size:1.2rem;font-weight:700;font-family:var(--font-hd);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.origmsg{background:var(--c2);border-left:3px solid var(--cyan);border-radius:var(--r-md);padding:12px;margin-bottom:16px;font-size:.875rem;color:var(--t1);line-height:1.6}
+
+/* ── CHIPS ── */
+.chip{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;background:var(--c2);border:1px solid var(--br0);border-radius:var(--r-full);font-size:.8125rem;font-family:var(--font-mn);font-weight:500;transition:all var(--tr)}
+.chip:hover{border-color:var(--cyan);background:var(--c3);transform:translateY(-1px)}
+
+/* ── UNREGISTERED USER CARD ── */
+.unreg-card{background:var(--c2);border:1px solid var(--br0);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:10px;transition:border-color var(--tr)}
+.unreg-card:hover{border-color:var(--br2)}
+.unreg-name{font-weight:600;color:var(--t0);font-family:var(--font-hd);font-size:.9375rem;margin-bottom:6px}
+.unreg-meta{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+.unreg-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:var(--r-full);font-size:.75rem;font-weight:500;font-family:var(--font-hd)}
+.pill-floor{background:rgba(37,99,196,.15);color:#6bb8ff;border:1px solid rgba(37,99,196,.3)}
+.pill-phone{background:rgba(34,201,122,.12);color:var(--green);border:1px solid rgba(34,201,122,.25)}
+.pill-wa{background:rgba(37,211,102,.12);color:#25d366;border:1px solid rgba(37,211,102,.25)}
+.wa-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;background:#25d366;color:#fff;border:none;border-radius:var(--r-md);font-size:.8125rem;font-weight:600;font-family:var(--font-hd);cursor:pointer;transition:all var(--tr-s);box-shadow:var(--sh-sm);text-decoration:none}
+.wa-btn:hover{background:#1aa851;transform:translateY(-1px);box-shadow:var(--sh-md),0 0 14px rgba(37,211,102,.3)}
+
+/* ── IMPORT RESULTS ── */
+.import-results{margin-top:16px}
+.import-tabs{display:flex;gap:4px;background:var(--c2);padding:3px;border-radius:var(--r-md);margin-bottom:12px;border:1px solid var(--br0)}
+.import-tab{flex:1;padding:7px;background:transparent;border:none;border-radius:var(--r-sm);color:var(--t2);font-size:.8rem;font-weight:600;cursor:pointer;font-family:var(--font-hd);transition:all var(--tr);display:flex;align-items:center;justify-content:center;gap:5px}
+.import-tab.active{background:var(--c3);color:var(--t0);border:1px solid var(--br1)}
+
+/* ── PERMISSION BANNER ── */
+#permBanner{display:none;background:rgba(245,158,58,.08);border:1px solid rgba(245,158,58,.3);border-left:3px solid var(--amber);padding:12px 16px;border-radius:var(--r-lg);margin-bottom:20px;align-items:center;justify-content:space-between;gap:12px}
+
+/* ── DIVIDER ── */
+.divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--t3);font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--br0)}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--c2);border-radius:3px}
+::-webkit-scrollbar-thumb{background:var(--br2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--cyan2)}
+
+/* ── UTIL ── */
+.hidden{display:none !important}
+::selection{background:var(--cyan-gl);color:var(--t0)}
+*:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:4px}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+@media(max-width:900px){.g2,.g4{grid-template-columns:1fr}.wrap{padding:14px}}
+@media(max-width:600px){#hdrUser{display:none}.npanel{width:calc(100% - 28px);right:14px}.tc{right:14px;left:14px;max-width:none}}
 </style>
 </head>
 <body>
@@ -1450,11 +367,21 @@ button:disabled {
 <!-- HEADER -->
 <div class="hdr">
   <div class="hdr-in">
-    <div class="logo"><div class="logo-ic">🔔</div><span>Nexus Audit</span></div>
+    <div class="logo">
+      <div class="logo-ic">
+        <svg class="ic" width="20" height="20"><use href="#ic-shield"/></svg>
+      </div>
+      <span>Nexus Audit</span>
+    </div>
     <div class="hdr-r" id="hdrR" style="display:none">
-      <span id="hdrUser" style="color:var(--t1);font-size:13px"></span>
-      <div class="nbell" onclick="togglePanel()">🔔<span class="nbadge hidden" id="nbadge">0</span></div>
-      <button class="bd bsm" onclick="logout()">Logout</button>
+      <span id="hdrUser"></span>
+      <div class="nbell" onclick="togglePanel()" title="Notifications">
+        <svg class="ic" width="18" height="18"><use href="#ic-bell"/></svg>
+        <span class="nbadge hidden" id="nbadge">0</span>
+      </div>
+      <button class="bg bsm" onclick="logout()" title="Logout">
+        <svg class="ic" width="15" height="15"><use href="#ic-logout"/></svg> Logout
+      </button>
     </div>
   </div>
 </div>
@@ -1463,9 +390,13 @@ button:disabled {
 <div class="npanel hidden" id="npanel">
   <div class="nphdr">
     <span>Notifications</span>
-    <button class="bg bsm" onclick="clearNotifs()">Clear All</button>
+    <button class="bg bsm" onclick="clearNotifs()">
+      <svg class="ic" width="13" height="13"><use href="#ic-x"/></svg> Clear All
+    </button>
   </div>
-  <div class="nlist" id="nlist"><div style="padding:40px;text-align:center;color:var(--t2)">No notifications</div></div>
+  <div class="nlist" id="nlist">
+    <div style="padding:40px;text-align:center;color:var(--t2)">No notifications yet</div>
+  </div>
 </div>
 
 <!-- TOASTS -->
@@ -1473,23 +404,87 @@ button:disabled {
 
 <div class="wrap">
 
-<!-- AUTH -->
+<!-- AUTH SECTION -->
 <div id="authSec">
-  <div class="card" style="max-width:460px;margin:80px auto">
+  <div class="card" style="max-width:460px;margin:70px auto">
+    <div style="text-align:center;margin-bottom:22px">
+      <div style="width:56px;height:56px;background:linear-gradient(135deg,var(--cyan),var(--blue2));border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 0 24px var(--cyan-gl)">
+        <svg class="ic" width="26" height="26" style="color:#fff"><use href="#ic-shield"/></svg>
+      </div>
+      <div style="font-family:var(--font-hd);font-size:1.4rem;font-weight:700;letter-spacing:-.02em">Nexus Audit</div>
+      <div style="color:var(--t2);font-size:.875rem;margin-top:4px">Real-Time Compliance Platform</div>
+    </div>
     <div class="tabs">
-      <button class="tab on" onclick="swTab('login',this)">Login</button>
-      <button class="tab"    onclick="swTab('reg',this)">Register</button>
+      <button class="tab on" onclick="swTab('login',this)">
+        <svg class="ic" width="15" height="15"><use href="#ic-lock"/></svg> Login
+      </button>
+      <button class="tab" onclick="swTab('reg',this)">
+        <svg class="ic" width="15" height="15"><use href="#ic-user"/></svg> Register
+      </button>
     </div>
+    <!-- LOGIN -->
     <div id="loginTab">
-      <div class="fg"><label>Username</label><input id="lu" type="text" placeholder="Enter username"></div>
-      <div class="fg"><label>Password</label><input id="lp" type="password" placeholder="Enter password"></div>
-      <button class="bp bfull" onclick="login()">Login</button>
+      <div class="fg">
+        <label>Gitea Username</label>
+        <div class="inp-wrap">
+          <input id="lu" type="text" placeholder="your-gitea-username" autocomplete="username">
+          <svg class="ic inp-ic" width="16" height="16"><use href="#ic-git"/></svg>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Password</label>
+        <div class="inp-wrap pwd-wrap">
+          <input id="lp" type="password" placeholder="Enter password" autocomplete="current-password" style="padding-left:40px">
+          <svg class="ic inp-ic" width="16" height="16"><use href="#ic-lock"/></svg>
+          <button type="button" class="pwd-toggle" onclick="togglePwd('lp',this)" title="Show password">
+            <svg class="ic" width="16" height="16"><use href="#ic-eye"/></svg>
+          </button>
+        </div>
+      </div>
+      <button class="bp bfull" onclick="login()" style="margin-bottom:12px">
+        <svg class="ic" width="16" height="16"><use href="#ic-lock"/></svg> Sign In
+      </button>
+      <div class="divider">or</div>
+      <button class="bg bfull" onclick="showForgot()" style="font-size:.8125rem">
+        <svg class="ic" width="14" height="14"><use href="#ic-key"/></svg> Forgot Password? Reset via Email
+      </button>
     </div>
+    <!-- REGISTER -->
     <div id="regTab" class="hidden">
-      <div class="fg"><label>Full Name</label><input id="rn" type="text" placeholder="John Doe"></div>
-      <div class="fg"><label>Username</label><input id="ru" type="text" placeholder="johndoe"></div>
-      <div class="fg"><label>Password</label><input id="rp" type="password" placeholder="Min 6 characters"></div>
-      <button class="bs bfull" onclick="register()">Create Account</button>
+      <div class="fg">
+        <label>Full Name</label>
+        <div class="inp-wrap">
+          <input id="rn" type="text" placeholder="John Doe">
+          <svg class="ic inp-ic" width="16" height="16"><use href="#ic-user"/></svg>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Gitea Username</label>
+        <div class="inp-wrap">
+          <input id="ru" type="text" placeholder="your-gitea-username" autocomplete="username">
+          <svg class="ic inp-ic" width="16" height="16"><use href="#ic-git"/></svg>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Email Address</label>
+        <div class="inp-wrap">
+          <input id="re" type="email" placeholder="you@company.com" autocomplete="email">
+          <svg class="ic inp-ic" width="16" height="16"><use href="#ic-mail"/></svg>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Password</label>
+        <div class="inp-wrap pwd-wrap">
+          <input id="rp" type="password" placeholder="Min 6 characters" autocomplete="new-password" style="padding-left:40px">
+          <svg class="ic inp-ic" width="16" height="16"><use href="#ic-lock"/></svg>
+          <button type="button" class="pwd-toggle" onclick="togglePwd('rp',this)">
+            <svg class="ic" width="16" height="16"><use href="#ic-eye"/></svg>
+          </button>
+        </div>
+      </div>
+      <button class="bs bfull" onclick="register()">
+        <svg class="ic" width="16" height="16"><use href="#ic-check"/></svg> Create Account
+      </button>
     </div>
   </div>
 </div>
@@ -1497,125 +492,254 @@ button:disabled {
 <!-- MAIN APP -->
 <div id="appSec" class="hidden">
 
-  <!-- permission banner -->
-  <div id="permBanner" style="display:none;background:var(--bg2);border:1px solid var(--warning);border-left:4px solid var(--warning);padding:13px 16px;border-radius:var(--radius-lg);margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow-sm)">
-    <span style="font-size:14px">🔔 Enable desktop notifications to stay updated</span>
-    <button class="bp bsm" onclick="reqPerm()">Enable</button>
+  <!-- Permission Banner -->
+  <div id="permBanner">
+    <div style="display:flex;align-items:center;gap:10px;font-size:.875rem">
+      <svg class="ic" width="18" height="18" style="color:var(--amber)"><use href="#ic-bell"/></svg>
+      Enable desktop notifications to receive instant audit alerts
+    </div>
+    <button class="bp bsm" onclick="reqPerm()">
+      <svg class="ic" width="14" height="14"><use href="#ic-check"/></svg> Enable
+    </button>
   </div>
 
-  <!-- STATS -->
+  <!-- STATS ROW -->
   <div class="g4" style="margin-bottom:20px">
-    <div class="sc"><div class="sl">Online</div><div class="sv" id="sOn">0</div></div>
-    <div class="sc"><div class="sl">Total Users</div><div class="sv" id="sTot">0</div></div>
-    <div class="sc"><div class="sl">Audits Sent</div><div class="sv" id="sAud">0</div></div>
-    <div class="sc" id="scFb" style="display:none"><div class="sl">Pending Feedback</div><div class="sv" id="sFb">0</div></div>
+    <div class="sc">
+      <div class="sc-line" style="background:linear-gradient(90deg,var(--cyan),var(--blue))"></div>
+      <div class="sl"><svg class="ic" width="13" height="13"><use href="#ic-wifi"/></svg> Online</div>
+      <div class="sv" id="sOn">0</div>
+    </div>
+    <div class="sc">
+      <div class="sc-line" style="background:linear-gradient(90deg,var(--blue),var(--purple))"></div>
+      <div class="sl"><svg class="ic" width="13" height="13"><use href="#ic-users"/></svg> Total Users</div>
+      <div class="sv" id="sTot">0</div>
+    </div>
+    <div class="sc">
+      <div class="sc-line" style="background:linear-gradient(90deg,var(--green),var(--cyan))"></div>
+      <div class="sl"><svg class="ic" width="13" height="13"><use href="#ic-send"/></svg> Audits Sent</div>
+      <div class="sv" id="sAud">0</div>
+    </div>
+    <div class="sc" id="scFb" style="display:none">
+      <div class="sc-line" style="background:linear-gradient(90deg,var(--amber),var(--red))"></div>
+      <div class="sl"><svg class="ic" width="13" height="13"><use href="#ic-clipboard"/></svg> Pending Feedback</div>
+      <div class="sv" id="sFb">0</div>
+    </div>
   </div>
 
-  <!-- CONNECTION + ONLINE -->
+  <!-- CONNECTION + ONLINE USERS -->
   <div class="g2">
     <div class="card">
-      <div class="ch"><div class="ct">Connection</div>
+      <div class="ch">
+        <div class="ct">
+          <div class="ct-ic cyan"><svg class="ic" width="16" height="16"><use href="#ic-wifi"/></svg></div>
+          Connection
+        </div>
         <span class="badge b-off" id="cbadge"><span class="bdot"></span><span id="ctext">Offline</span></span>
       </div>
-      <button id="cbtn" class="bp bfull" onclick="connectWS()">Connect</button>
+      <button id="cbtn" class="bp bfull" onclick="connectWS()">
+        <svg class="ic" width="16" height="16"><use href="#ic-wifi"/></svg> Connect
+      </button>
     </div>
     <div class="card">
-      <div class="ch"><div class="ct">🌐 Online Now</div></div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;min-height:30px" id="chips">
-        <span style="color:var(--t2);font-size:13px">No users online</span>
+      <div class="ch">
+        <div class="ct">
+          <div class="ct-ic blue"><svg class="ic" width="16" height="16"><use href="#ic-users"/></svg></div>
+          Online Now
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;min-height:32px" id="chips">
+        <span style="color:var(--t2);font-size:.875rem">No users online</span>
       </div>
     </div>
   </div>
 
   <!-- SEND AUDIT -->
   <div id="auditCard" class="card hidden">
-    <div class="ch"><div class="ct">📤 Send Audit Request</div></div>
+    <div class="ch">
+      <div class="ct">
+        <div class="ct-ic cyan"><svg class="ic" width="16" height="16"><use href="#ic-send"/></svg></div>
+        Send Audit Request
+      </div>
+    </div>
     <div class="g2">
       <div class="fg swrap">
         <label>Target User</label>
-        <input id="tUser" type="text" placeholder="Type to search…" autocomplete="off"
-          oninput="srchUsers(this.value)" onfocus="srchUsers(this.value)">
+        <div class="inp-wrap">
+          <input id="tUser" type="text" placeholder="Search by gitea username or name…" autocomplete="off"
+            oninput="srchUsers(this.value)" onfocus="srchUsers(this.value)" style="padding-left:40px">
+          <svg class="ic inp-ic" width="16" height="16"><use href="#ic-search"/></svg>
+        </div>
         <div id="sdrop" class="sdrop hidden"></div>
       </div>
-      <div class="fg"><label>Details</label><input id="aDetail" type="text" placeholder="What needs auditing?"></div>
+      <div class="fg">
+        <label>Audit Details</label>
+        <div class="inp-wrap">
+          <input id="aDetail" type="text" placeholder="Describe what needs auditing…" style="padding-left:40px">
+          <svg class="ic inp-ic" width="16" height="16"><use href="#ic-clipboard"/></svg>
+        </div>
+      </div>
     </div>
-    <button class="bs bfull" onclick="sendAudit()">Send Request</button>
+    <button class="bs bfull" onclick="sendAudit()">
+      <svg class="ic" width="16" height="16"><use href="#ic-send"/></svg> Send Audit Request
+    </button>
   </div>
 
   <!-- FEEDBACK FORM (non-admin) -->
   <div id="fbForm" class="card">
-    <div class="ch"><div class="ct">💬 Send Feedback</div></div>
+    <div class="ch">
+      <div class="ct">
+        <div class="ct-ic purple"><svg class="ic" width="16" height="16"><use href="#ic-message"/></svg></div>
+        Send Feedback
+      </div>
+    </div>
     <div class="g2">
       <div class="fg">
         <label>Type</label>
-        <select id="fbT">
-          <option value="bug">🐛 Bug Report</option>
-          <option value="feature">✨ Feature Request</option>
-          <option value="general">💭 General Feedback</option>
-        </select>
+        <div class="inp-wrap">
+          <select id="fbT" style="padding-left:40px">
+            <option value="bug">Bug Report</option>
+            <option value="feature">Feature Request</option>
+            <option value="general">General Feedback</option>
+          </select>
+          <svg class="ic inp-ic" width="16" height="16"><use href="#ic-filter"/></svg>
+        </div>
       </div>
-      <div class="fg"><label>Subject</label><input id="fbS" type="text" placeholder="Brief description"></div>
+      <div class="fg">
+        <label>Subject</label>
+        <div class="inp-wrap">
+          <input id="fbS" type="text" placeholder="Brief description…" style="padding-left:40px">
+          <svg class="ic inp-ic" width="16" height="16"><use href="#ic-clipboard"/></svg>
+        </div>
+      </div>
     </div>
-    <div class="fg"><label>Message</label><textarea id="fbM" placeholder="Describe in detail…"></textarea></div>
-    <button class="bs bfull" onclick="submitFb()">Submit Feedback</button>
+    <div class="fg">
+      <label>Message</label>
+      <textarea id="fbM" placeholder="Describe your feedback in detail…"></textarea>
+    </div>
+    <button class="bs bfull" onclick="submitFb()">
+      <svg class="ic" width="16" height="16"><use href="#ic-send"/></svg> Submit Feedback
+    </button>
   </div>
 
   <!-- ===== ADMIN ONLY ===== -->
 
-  <!-- IMPORT -->
+  <!-- IMPORT USERS -->
   <div id="importCard" class="card hidden">
-    <div class="ch"><div class="ct">📥 Import Users</div></div>
-    <div style="text-align:center;padding:14px">
-      <p style="color:var(--t1);margin-bottom:14px">Excel: Column A = First Name, B = Last Name, C = Username</p>
-      <input type="file" id="xlFile" class="fil" accept=".xlsx,.xls" onchange="importUsers()">
-      <label for="xlFile" class="flab">Choose Excel File</label>
-      <div id="impSt" style="margin-top:10px;font-size:14px"></div>
+    <div class="ch">
+      <div class="ct">
+        <div class="ct-ic cyan"><svg class="ic" width="16" height="16"><use href="#ic-upload"/></svg></div>
+        Import Users from Excel
+      </div>
     </div>
+    <div style="background:var(--c2);border:1px solid var(--br0);border-radius:var(--r-md);padding:14px 16px;margin-bottom:16px;font-size:.875rem;color:var(--t1);line-height:1.7">
+      <strong style="color:var(--t0);display:block;margin-bottom:6px">Expected Excel Columns:</strong>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <span style="background:var(--c3);border:1px solid var(--br1);padding:2px 10px;border-radius:4px;font-family:var(--font-mn);font-size:.78rem">A: First Name</span>
+        <span style="background:var(--c3);border:1px solid var(--br1);padding:2px 10px;border-radius:4px;font-family:var(--font-mn);font-size:.78rem">B: Last Name</span>
+        <span style="background:var(--c3);border:1px solid var(--br1);padding:2px 10px;border-radius:4px;font-family:var(--font-mn);font-size:.78rem">C: Gitea Username</span>
+        <span style="background:rgba(37,99,196,.15);border:1px solid rgba(37,99,196,.3);padding:2px 10px;border-radius:4px;font-family:var(--font-mn);font-size:.78rem;color:#6bb8ff">D: Phone (optional)</span>
+        <span style="background:rgba(37,99,196,.15);border:1px solid rgba(37,99,196,.3);padding:2px 10px;border-radius:4px;font-family:var(--font-mn);font-size:.78rem;color:#6bb8ff">E: Floor (optional)</span>
+      </div>
+      <div style="margin-top:8px;color:var(--t2);font-size:.8rem">Users without a Gitea account will appear as <strong style="color:var(--amber)">Unregistered</strong> — with WhatsApp invite option and floor location.</div>
+    </div>
+    <div style="text-align:center;padding:10px">
+      <input type="file" id="xlFile" class="fil" accept=".xlsx,.xls" onchange="importUsers()">
+      <label for="xlFile" class="flab">
+        <svg class="ic" width="17" height="17"><use href="#ic-upload"/></svg> Choose Excel File
+      </label>
+      <div id="impSt" style="margin-top:12px;font-size:.875rem"></div>
+    </div>
+    <div id="importResults" class="import-results hidden"></div>
   </div>
 
   <!-- BROADCAST -->
   <div id="bcCard" class="card hidden">
-    <div class="ch"><div class="ct">📢 Broadcast Message</div></div>
+    <div class="ch">
+      <div class="ct">
+        <div class="ct-ic amber"><svg class="ic" width="16" height="16"><use href="#ic-radio"/></svg></div>
+        Broadcast Message
+      </div>
+    </div>
     <div class="g2">
       <div class="fg">
-        <label>Audience</label>
-        <select id="bcTarget"><option value="online">Online Users Only</option><option value="all">All Registered Users</option></select>
+        <label>Target Audience</label>
+        <div class="inp-wrap">
+          <select id="bcTarget" style="padding-left:40px">
+            <option value="online">Online Users Only</option>
+            <option value="all">All Registered Users</option>
+          </select>
+          <svg class="ic inp-ic" width="16" height="16"><use href="#ic-users"/></svg>
+        </div>
       </div>
-      <div class="fg"><label>Message</label><input id="bcMsg" type="text" placeholder="Type your announcement…"></div>
+      <div class="fg">
+        <label>Message</label>
+        <div class="inp-wrap">
+          <input id="bcMsg" type="text" placeholder="Type your announcement…" style="padding-left:40px">
+          <svg class="ic inp-ic" width="16" height="16"><use href="#ic-radio"/></svg>
+        </div>
+      </div>
     </div>
-    <button class="bp bfull" onclick="sendBroadcast()">Send Broadcast</button>
+    <button class="bp bfull" onclick="sendBroadcast()">
+      <svg class="ic" width="16" height="16"><use href="#ic-radio"/></svg> Send Broadcast
+    </button>
   </div>
 
   <!-- USER MANAGEMENT -->
   <div id="userCard" class="card hidden">
     <div class="ch">
-      <div class="ct">👥 User Management</div>
+      <div class="ct">
+        <div class="ct-ic blue"><svg class="ic" width="16" height="16"><use href="#ic-users"/></svg></div>
+        User Management
+      </div>
       <div style="display:flex;gap:8px">
-        <button class="bg bsm" onclick="loadUsers()">🔄 Refresh</button>
-        <button class="bs bsm" onclick="exportCSV()">📊 Export CSV</button>
+        <button class="bg bsm" onclick="loadUsers()">
+          <svg class="ic" width="13" height="13"><use href="#ic-refresh"/></svg> Refresh
+        </button>
+        <button class="bs bsm" onclick="exportCSV()">
+          <svg class="ic" width="13" height="13"><use href="#ic-download"/></svg> Export CSV
+        </button>
       </div>
     </div>
-    <div style="display:flex;gap:10px;margin-bottom:10px">
-      <input id="uSrch" type="text" placeholder="Search users…" style="flex:1" oninput="filterUsers(this.value)">
-      <select id="uFilter" onchange="filterUsers()" style="width:155px">
-        <option value="all">All Users</option>
-        <option value="online">Online Only</option>
-        <option value="offline">Offline Only</option>
-      </select>
+    <div style="display:flex;gap:10px;margin-bottom:12px">
+      <div class="inp-wrap" style="flex:1">
+        <input id="uSrch" type="text" placeholder="Search by name, username or email…" oninput="filterUsers(this.value)" style="padding-left:40px">
+        <svg class="ic inp-ic" width="16" height="16"><use href="#ic-search"/></svg>
+      </div>
+      <div class="inp-wrap" style="width:155px">
+        <select id="uFilter" onchange="filterUsers()" style="padding-left:36px">
+          <option value="all">All Users</option>
+          <option value="online">Online Only</option>
+          <option value="offline">Offline Only</option>
+        </select>
+        <svg class="ic inp-ic" width="14" height="14"><use href="#ic-filter"/></svg>
+      </div>
     </div>
-    <div style="display:flex;gap:24px;background:var(--bg2);padding:9px 14px;border-radius:var(--radius-md);margin-bottom:12px">
-      <span style="font-size:13px;color:var(--t1)">Total: <strong id="uTot" style="color:var(--t0)">0</strong></span>
-      <span style="font-size:13px;color:var(--t1)">Online: <strong id="uOn" style="color:var(--success)">0</strong></span>
-      <span style="font-size:13px;color:var(--t1)">New Today: <strong id="uNew" style="color:var(--primary)">0</strong></span>
+    <div style="display:flex;gap:24px;background:var(--c2);padding:10px 16px;border-radius:var(--r-md);margin-bottom:14px;border:1px solid var(--br0)">
+      <span style="font-size:.8125rem;color:var(--t1);display:flex;align-items:center;gap:6px">
+        <svg class="ic" width="13" height="13" style="color:var(--t2)"><use href="#ic-users"/></svg>
+        Total: <strong id="uTot" style="color:var(--t0)">0</strong>
+      </span>
+      <span style="font-size:.8125rem;color:var(--t1);display:flex;align-items:center;gap:6px">
+        <span style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block"></span>
+        Online: <strong id="uOn" style="color:var(--green)">0</strong>
+      </span>
+      <span style="font-size:.8125rem;color:var(--t1);display:flex;align-items:center;gap:6px">
+        <svg class="ic" width="13" height="13" style="color:var(--cyan)"><use href="#ic-trending"/></svg>
+        New Today: <strong id="uNew" style="color:var(--cyan)">0</strong>
+      </span>
     </div>
-    <div style="max-height:460px;overflow-y:auto;border:1px solid var(--br);border-radius:var(--radius-md)">
+    <div style="max-height:480px;overflow-y:auto;border:1px solid var(--br0);border-radius:var(--r-md)">
       <table class="utbl">
         <thead>
           <tr>
-            <th>User</th><th>Email</th><th>Status</th><th>Joined</th><th>Last Login</th><th style="text-align:center">Actions</th>
+            <th>User</th><th>Email</th><th>Status</th><th>Joined</th><th>Last Login</th>
+            <th style="text-align:center">Actions</th>
           </tr>
         </thead>
-        <tbody id="uBody"><tr><td colspan="6" style="text-align:center;padding:40px;color:var(--t2)">Loading…</td></tr></tbody>
+        <tbody id="uBody">
+          <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--t2)">Loading…</td></tr>
+        </tbody>
       </table>
     </div>
   </div>
@@ -1623,42 +747,76 @@ button:disabled {
   <!-- FEEDBACK MANAGEMENT -->
   <div id="fbMgmt" class="card hidden">
     <div class="ch">
-      <div class="ct">📋 Feedback Management</div>
-      <div style="display:flex;gap:8px">
-        <select id="fbFilt" onchange="loadFeedback()" style="padding:6px 10px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--radius-sm);color:var(--t0);font-size:13px">
-          <option value="all">All Types</option>
-          <option value="bug">🐛 Bugs</option>
-          <option value="feature">✨ Features</option>
-          <option value="general">💭 General</option>
-        </select>
-        <button class="bg bsm" onclick="loadFeedback()">🔄 Refresh</button>
+      <div class="ct">
+        <div class="ct-ic purple"><svg class="ic" width="16" height="16"><use href="#ic-message"/></svg></div>
+        Feedback Management
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="inp-wrap" style="width:auto">
+          <select id="fbFilt" onchange="loadFeedback()" style="padding:7px 30px 7px 34px;font-size:.8rem">
+            <option value="all">All Types</option>
+            <option value="bug">Bugs</option>
+            <option value="feature">Features</option>
+            <option value="general">General</option>
+          </select>
+          <svg class="ic inp-ic" width="13" height="13"><use href="#ic-filter"/></svg>
+        </div>
+        <button class="bg bsm" onclick="loadFeedback()">
+          <svg class="ic" width="13" height="13"><use href="#ic-refresh"/></svg> Refresh
+        </button>
       </div>
     </div>
-    <div id="fbList" style="max-height:400px;overflow-y:auto"></div>
+    <div id="fbList" style="max-height:420px;overflow-y:auto"></div>
   </div>
 
-  <!-- SYSTEM STATS -->
+  <!-- SYSTEM ANALYTICS -->
   <div id="statsCard" class="card hidden">
     <div class="ch">
-      <div class="ct">📈 System Analytics</div>
-      <button class="bg bsm" onclick="loadStats()">🔄 Refresh</button>
+      <div class="ct">
+        <div class="ct-ic green"><svg class="ic" width="16" height="16"><use href="#ic-trending"/></svg></div>
+        System Analytics
+      </div>
+      <button class="bg bsm" onclick="loadStats()">
+        <svg class="ic" width="13" height="13"><use href="#ic-refresh"/></svg> Refresh
+      </button>
     </div>
     <div class="g4">
-      <div class="sc"><div class="sl">Total Users</div><div class="sv" id="stU">0</div></div>
-      <div class="sc"><div class="sl">Online Now</div><div class="sv" id="stO">0</div></div>
-      <div class="sc"><div class="sl">Total Audits</div><div class="sv" id="stA">0</div></div>
-      <div class="sc"><div class="sl">Pending Feedback</div><div class="sv" id="stF">0</div></div>
+      <div class="sc">
+        <div class="sc-line" style="background:linear-gradient(90deg,var(--cyan),var(--blue))"></div>
+        <div class="sl"><svg class="ic" width="12" height="12"><use href="#ic-users"/></svg> Total Users</div>
+        <div class="sv" id="stU">0</div>
+      </div>
+      <div class="sc">
+        <div class="sc-line" style="background:linear-gradient(90deg,var(--green),var(--cyan))"></div>
+        <div class="sl"><svg class="ic" width="12" height="12"><use href="#ic-wifi"/></svg> Online Now</div>
+        <div class="sv" id="stO">0</div>
+      </div>
+      <div class="sc">
+        <div class="sc-line" style="background:linear-gradient(90deg,var(--blue),var(--purple))"></div>
+        <div class="sl"><svg class="ic" width="12" height="12"><use href="#ic-send"/></svg> Total Audits</div>
+        <div class="sv" id="stA">0</div>
+      </div>
+      <div class="sc">
+        <div class="sc-line" style="background:linear-gradient(90deg,var(--amber),var(--red))"></div>
+        <div class="sl"><svg class="ic" width="12" height="12"><use href="#ic-clipboard"/></svg> Pending Feedback</div>
+        <div class="sv" id="stF">0</div>
+      </div>
     </div>
   </div>
 
   <!-- ACTIVITY LOG -->
   <div class="card">
     <div class="ch">
-      <div class="ct">📋 Activity Log</div>
-      <button class="bg bsm" onclick="document.getElementById('logBox').innerHTML=''">Clear</button>
+      <div class="ct">
+        <div class="ct-ic amber"><svg class="ic" width="16" height="16"><use href="#ic-terminal"/></svg></div>
+        Activity Log
+      </div>
+      <button class="bg bsm" onclick="document.getElementById('logBox').innerHTML=''">
+        <svg class="ic" width="13" height="13"><use href="#ic-x"/></svg> Clear
+      </button>
     </div>
     <div class="log" id="logBox">
-      <div class="lr l-info"><span class="lt">[SYSTEM]</span><span class="lm">Ready</span></div>
+      <div class="lr l-info"><span class="lt">[SYSTEM]</span><span class="lm">Nexus Audit ready</span></div>
     </div>
   </div>
 
@@ -1666,50 +824,96 @@ button:disabled {
 </div><!-- /wrap -->
 
 <script>
-// ── config ───────────────────────────────────────────────────
+// ── config ────────────────────────────────────────────────────
 const API = location.hostname==='localhost'?'http://localhost:8080':'https://audit-notification.onrender.com';
 const WSS = location.hostname==='localhost'?'ws://localhost:8080':'wss://audit-notification.onrender.com';
 
-// ── sounds ───────────────────────────────────────────────────
+// ── sounds ────────────────────────────────────────────────────
 const SND = {
   audit:   new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3'),
   reply:   new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'),
   success: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'),
 };
-Object.values(SND).forEach(a=>a.volume=1.0);
-function playSound(t){const s=SND[t]||SND.audit;s.currentTime=0;s.play().catch(()=>{})}
+Object.values(SND).forEach(function(a){a.volume=1.0;});
+function playSound(t){var s=SND[t]||SND.audit;s.currentTime=0;s.play().catch(function(){});}
 
-// ── state (single declarations) ─────────────────────────────
+// ── state ─────────────────────────────────────────────────────
 var ws=null, me=null, manualDisc=false, retries=0;
 var notifs=[], unread=0, online=[], auditCount=0;
-var userList=[];          // admin user list
-var onlineTimer=null, srchTimer=null;
+var userList=[], onlineTimer=null, srchTimer=null;
 
-// ── tabs ─────────────────────────────────────────────────────
+// ── password toggle ───────────────────────────────────────────
+function togglePwd(id,btn){
+  var inp=document.getElementById(id);
+  inp.type=inp.type==='password'?'text':'password';
+}
+
+// ── forgot password ───────────────────────────────────────────
+function showForgot(){
+  openModal(
+    '<svg class="ic" width="18" height="18"><use href="#ic-key"/></svg> Reset Password',
+    '<div class="fg"><label>Your Email Address</label><div class="inp-wrap"><input id="forgotEmail" type="email" placeholder="you@company.com" style="padding-left:40px"><svg class="ic inp-ic" width="16" height="16"><use href="#ic-mail"/></svg></div></div>'+
+    '<div style="font-size:.8rem;color:var(--t2);margin-bottom:16px">A password reset link will be sent to your registered email address.</div>'+
+    '<div style="display:flex;gap:10px;justify-content:flex-end">'+
+      '<button class="bg bsm" onclick="closeModal()"><svg class="ic" width="13" height="13"><use href="#ic-x"/></svg> Cancel</button>'+
+      '<button class="bp bsm" onclick="sendReset()"><svg class="ic" width="13" height="13"><use href="#ic-mail"/></svg> Send Reset Link</button>'+
+    '</div>'
+  );
+}
+
+async function sendReset(){
+  var email=document.getElementById('forgotEmail');
+  if(!email||!email.value.trim()) return toast('Error','Please enter your email address','error');
+  try{
+    var r=await fetch(API+'/forgot-password',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email:email.value.trim()})});
+    closeModal();
+    toast('Email Sent','Password reset link sent if the email is registered','success',6000);
+  }catch(e){
+    closeModal();
+    toast('Sent','If that email exists, a reset link has been dispatched','info',6000);
+  }
+}
+
+// ── generic modal ─────────────────────────────────────────────
+function openModal(title,body){
+  var m=document.createElement('div');
+  m.className='mover';m.id='genModal';
+  m.innerHTML='<div class="modal"><div class="mtitle">'+title+'</div>'+body+'</div>';
+  document.body.appendChild(m);
+  m.addEventListener('click',function(e){if(e.target===m)closeModal();});
+}
+function closeModal(){var m=document.getElementById('genModal');if(m)m.remove();}
+
+// ── tabs ──────────────────────────────────────────────────────
 function swTab(t,btn){
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
-  btn&&btn.classList.add('on');
+  document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('on');});
+  if(btn)btn.classList.add('on');
   document.getElementById('loginTab').classList.toggle('hidden',t!=='login');
   document.getElementById('regTab').classList.toggle('hidden',t!=='reg');
 }
 
-// ── auth ─────────────────────────────────────────────────────
+// ── register ──────────────────────────────────────────────────
 async function register(){
   var n=document.getElementById('rn').value.trim();
   var u=document.getElementById('ru').value.trim();
+  var e=document.getElementById('re').value.trim();
   var p=document.getElementById('rp').value;
-  if(!n||!u||!p) return toast('Error','All fields required','error');
+  if(!n||!u||!e||!p) return toast('Error','All fields are required','error');
   if(p.length<6) return toast('Error','Password must be at least 6 characters','error');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return toast('Error','Please enter a valid email address','error');
   try{
     var r=await fetch(API+'/register',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({username:u,email:u+'@local.system',full_name:n,password:p})});
+      body:JSON.stringify({username:u,email:e,full_name:n,password:p})});
     if(!r.ok){var t2=await r.text();return toast('Error',t2,'error');}
-    toast('Success','Account created! Please login.','success');
+    toast('Account Created','Welcome! Please log in with your credentials.','success');
     swTab('login',document.querySelectorAll('.tab')[0]);
     document.getElementById('lu').value=u;
-  }catch(e){toast('Error',e.message,'error');}
+  }catch(err){toast('Error',err.message,'error');}
 }
 
+// ── login ─────────────────────────────────────────────────────
 async function login(){
   var u=document.getElementById('lu').value.trim();
   var p=document.getElementById('lp').value;
@@ -1717,14 +921,15 @@ async function login(){
   try{
     var r=await fetch(API+'/login',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({username:u,password:p})});
-    if(!r.ok) return toast('Error','Invalid credentials','error');
+    if(!r.ok) return toast('Error','Invalid credentials. Please try again.','error');
     var d=await r.json();
     me=d.user;
     localStorage.setItem('me',JSON.stringify(me));
     showApp();
-  }catch(e){toast('Error','Login failed: '+e.message,'error');}
+  }catch(err){toast('Error','Login failed: '+err.message,'error');}
 }
 
+// ── logout ────────────────────────────────────────────────────
 function logout(){
   if(ws){manualDisc=true;ws.close();}
   clearInterval(onlineTimer);
@@ -1734,10 +939,10 @@ function logout(){
   document.getElementById('hdrR').style.display='none';
   document.getElementById('auditCard').classList.add('hidden');
   online=[]; renderChips();
-  addLog('Logged out','info');
+  addLog('Signed out','info');
 }
 
-// ── show app ─────────────────────────────────────────────────
+// ── show app ──────────────────────────────────────────────────
 function showApp(){
   document.getElementById('authSec').classList.add('hidden');
   document.getElementById('appSec').classList.remove('hidden');
@@ -1748,8 +953,8 @@ function showApp(){
   auditCount=parseInt(localStorage.getItem('ac')||'0');
   document.getElementById('sAud').textContent=auditCount;
   if(me.username==='admin') showAdminPanels();
-  addLog('Welcome '+(me.full_name||me.username),'success');
-  setTimeout(()=>{if(!ws||ws.readyState!==WebSocket.OPEN)connectWS();},400);
+  addLog('Welcome, '+(me.full_name||me.username),'success');
+  setTimeout(function(){if(!ws||ws.readyState!==WebSocket.OPEN)connectWS();},400);
 }
 
 function showAdminPanels(){
@@ -1764,19 +969,17 @@ function showAdminPanels(){
 // ── websocket ─────────────────────────────────────────────────
 function connectWS(){
   if(!me) return;
-  addLog('Connecting…','info');
+  addLog('Establishing connection…','info');
   ws=new WebSocket(WSS+'/ws?user='+me.username);
-
   ws.onopen=function(){
     setConn(true);
-    addLog('Connected','success');
+    addLog('Connection established','success');
     retries=0; manualDisc=false;
     reqPerm();
     fetchOnline();
     clearInterval(onlineTimer);
     onlineTimer=setInterval(fetchOnline,5000);
   };
-
   ws.onmessage=function(e){
     try{
       var d=JSON.parse(e.data);
@@ -1793,7 +996,6 @@ function connectWS(){
       addNotif({message:e.data,sender:'System',time:new Date(),read:false,canReply:false});
     }
   };
-
   ws.onclose=function(){
     setConn(false);
     clearInterval(onlineTimer);
@@ -1805,7 +1007,6 @@ function connectWS(){
       retries++;
     }
   };
-
   ws.onerror=function(){addLog('WebSocket error','error');};
 }
 
@@ -1815,33 +1016,72 @@ function setConn(on){
   document.getElementById('cbadge').className='badge '+(on?'b-on':'b-off');
   document.getElementById('ctext').textContent=on?'Connected':'Disconnected';
   var btn=document.getElementById('cbtn');
-  btn.textContent=on?'Disconnect':'Connect';
-  btn.className=on?'bd bfull':'bp bfull';
-  btn.onclick=on?disconnectWS:connectWS;
+  if(on){
+    btn.innerHTML='<svg class="ic" width="16" height="16"><use href="#ic-wifi-off"/></svg> Disconnect';
+    btn.className='bd bfull';
+    btn.onclick=disconnectWS;
+  }else{
+    btn.innerHTML='<svg class="ic" width="16" height="16"><use href="#ic-wifi"/></svg> Connect';
+    btn.className='bp bfull';
+    btn.onclick=connectWS;
+  }
   document.getElementById('auditCard').classList.toggle('hidden',!on);
 }
 
 // ── online users ──────────────────────────────────────────────
+// FIX: Send X-Admin-User header so backend returns total count only to admin.
+// The backend connections map is the authoritative source — always accurate.
 async function fetchOnline(){
   try{
-    var r=await fetch(API+'/online?_='+Date.now(),{cache:'no-cache'});
+    var hdrs={'Cache-Control':'no-cache'};
+    if(me&&me.username==='admin') hdrs['X-Admin-User']='admin';
+    var r=await fetch(API+'/online?_='+Date.now(),{cache:'no-cache',headers:hdrs});
     if(!r.ok) return;
     var d=await r.json();
     online=d.online||[];
     document.getElementById('sOn').textContent=online.length;
-    document.getElementById('sTot').textContent=d.total||0;
+    // Only show total registered count when backend returns it (admin only)
+    if(d.total!==undefined){
+      document.getElementById('sTot').textContent=d.total;
+    }
     renderChips();
+    // Refresh user table online badges without a full reload
     if(me&&me.username==='admin'){
       document.getElementById('uOn').textContent=online.length;
+      // Update inline status badges using backend's online array
+      refreshUserOnlineStatus();
     }
-  }catch(e){}
+  }catch(err){}
+}
+
+// Refreshes the Online/Offline badges in the user table without re-fetching the full list.
+// Uses the online[] array returned by the backend /online endpoint.
+function refreshUserOnlineStatus(){
+  if(!userList||!userList.length) return;
+  // Update each user's online flag from the fresh online array
+  userList.forEach(function(u){u.online=online.indexOf(u.username)>-1;});
+  // Re-render just the status cells without rebuilding the whole table
+  var rows=document.querySelectorAll('#uBody tr');
+  rows.forEach(function(row){
+    var usernameCell=row.querySelector('td:first-child [style*="font-mn"]');
+    if(!usernameCell) return;
+    var uname=usernameCell.textContent.replace('@','').trim();
+    var isOn=online.indexOf(uname)>-1;
+    var statusCell=row.querySelector('td:nth-child(3)');
+    if(statusCell){
+      statusCell.innerHTML='<span class="badge '+(isOn?'b-on':'b-off')+'"><span class="bdot"></span>'+(isOn?'Online':'Offline')+'</span>';
+    }
+  });
 }
 
 function renderChips(){
   var el=document.getElementById('chips');
-  if(!online.length){el.innerHTML='<span style="color:var(--t2);font-size:13px">No users online</span>';return;}
+  if(!online.length){
+    el.innerHTML='<span style="color:var(--t2);font-size:.875rem">No users online</span>';
+    return;
+  }
   el.innerHTML=online.map(function(u){
-    return '<div class="chip"><span style="width:6px;height:6px;border-radius:50%;background:var(--success);display:inline-block"></span>'+esc(u)+'</div>';
+    return '<div class="chip"><span style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;box-shadow:0 0 6px var(--green)"></span>'+esc(u)+'</div>';
   }).join('');
 }
 
@@ -1850,25 +1090,25 @@ function addNotif(n){
   notifs.unshift(n); unread++;
   renderBadge(); renderList(); saveNotifs();
 }
-
 function renderBadge(){
   var b=document.getElementById('nbadge');
   if(unread>0){b.textContent=unread>99?'99+':unread;b.classList.remove('hidden');}
   else b.classList.add('hidden');
 }
-
 function renderList(){
   var el=document.getElementById('nlist');
-  if(!notifs.length){el.innerHTML='<div style="padding:40px;text-align:center;color:var(--t2)">No notifications</div>';return;}
+  if(!notifs.length){
+    el.innerHTML='<div style="padding:40px;text-align:center;color:var(--t2)">No notifications yet</div>';
+    return;
+  }
   el.innerHTML=notifs.map(function(n){
-    var replyBtn=n.canReply?('<button class="rbtn" onclick="event.stopPropagation();openReply('+(n.id||0)+',\''+esc(n.sender)+'\',\''+esc(n.message)+'\')">💬 Reply</button>'):'';
-    var tag=n.isReply?'<div style="color:var(--primary);font-size:11px;margin-top:4px">↩ Reply</div>':'';
+    var rb=n.canReply?('<button class="rbtn" onclick="event.stopPropagation();openReply('+(n.id||0)+',\''+esc(n.sender)+'\',\''+esc(n.message)+'\')"><svg class="ic" width="13" height="13"><use href="#ic-reply"/></svg> Reply</button>'):'';
+    var tag=n.isReply?'<div style="color:var(--cyan);font-size:.72rem;margin-top:4px;display:flex;align-items:center;gap:4px"><svg class="ic" width="11" height="11"><use href="#ic-reply"/></svg> Reply</div>':'';
     return '<div class="ni '+(n.read?'':'unread')+'" onclick="markRead('+(n.id||0)+')">'+
       '<div class="ntime">'+timeAgo(n.time)+'</div>'+
-      '<div class="nmsg">'+esc(n.message)+'</div>'+replyBtn+tag+'</div>';
+      '<div class="nmsg">'+esc(n.message)+'</div>'+rb+tag+'</div>';
   }).join('');
 }
-
 function togglePanel(){
   var p=document.getElementById('npanel');
   p.classList.toggle('hidden');
@@ -1877,21 +1117,17 @@ function togglePanel(){
     unread=0; renderBadge(); renderList(); saveNotifs();
   }
 }
-
 function markRead(id){
   var n=notifs.find(function(x){return x.id===id;});
   if(n&&!n.read){n.read=true;unread=Math.max(0,unread-1);renderBadge();saveNotifs();}
 }
-
 function clearNotifs(){notifs=[];unread=0;renderBadge();renderList();saveNotifs();}
-
 function saveNotifs(){
   var d=Date.now()-86400000;
   localStorage.setItem('notifs',JSON.stringify(
     notifs.filter(function(n){return new Date(n.time)>d;}).slice(0,50)
   ));
 }
-
 function loadNotifs(){
   try{
     var s=localStorage.getItem('notifs');
@@ -1900,7 +1136,7 @@ function loadNotifs(){
       unread=notifs.filter(function(n){return !n.read;}).length;
       renderBadge(); renderList();
     }
-  }catch(e){notifs=[];}
+  }catch(err){notifs=[];}
 }
 
 // ── reply modal ───────────────────────────────────────────────
@@ -1908,20 +1144,18 @@ function openReply(id,sender,origMsg){
   var m=document.createElement('div');
   m.className='mover'; m.id='rModal';
   m.innerHTML='<div class="modal">'+
-    '<div class="mtitle">Reply to @'+esc(sender)+'</div>'+
-    '<div class="origmsg"><strong>Original:</strong><br>'+esc(origMsg)+'</div>'+
+    '<div class="mtitle"><svg class="ic" width="18" height="18"><use href="#ic-reply"/></svg> Reply to @'+esc(sender)+'</div>'+
+    '<div class="origmsg"><strong style="color:var(--t0)">Original message:</strong><br><span style="color:var(--t1)">'+esc(origMsg)+'</span></div>'+
     '<div class="fg"><label>Your Reply</label><textarea id="rTxt" placeholder="Type your reply…"></textarea></div>'+
     '<div style="display:flex;gap:10px;justify-content:flex-end">'+
-      '<button class="bg" onclick="closeReply()">Cancel</button>'+
-      '<button class="bs" onclick="sendReply('+id+',\''+esc(sender)+'\')">Send Reply</button>'+
+      '<button class="bg bsm" onclick="closeReply()"><svg class="ic" width="13" height="13"><use href="#ic-x"/></svg> Cancel</button>'+
+      '<button class="bs bsm" onclick="sendReply('+id+',\''+esc(sender)+'\')"><svg class="ic" width="13" height="13"><use href="#ic-send"/></svg> Send Reply</button>'+
     '</div></div>';
   document.body.appendChild(m);
   m.addEventListener('click',function(e){if(e.target===m)closeReply();});
   document.getElementById('rTxt').focus();
 }
-
 function closeReply(){var m=document.getElementById('rModal');if(m)m.remove();}
-
 async function sendReply(id,sender){
   var txt=document.getElementById('rTxt').value.trim();
   if(!txt) return toast('Error','Reply cannot be empty','error');
@@ -1930,15 +1164,15 @@ async function sendReply(id,sender){
       body:JSON.stringify({notificationId:id,replyMessage:txt,replierUsername:me.username})});
     if(!r.ok) throw new Error('Reply failed');
     playSound('success');
-    toast('Sent','Reply sent to @'+sender,'success');
+    toast('Sent','Reply delivered to @'+sender,'success');
     addLog('Reply sent to @'+sender,'success');
     closeReply();
     var n=notifs.find(function(x){return x.id===id;});
     if(n){n.canReply=false;renderList();saveNotifs();}
-  }catch(e){toast('Error',e.message,'error');}
+  }catch(err){toast('Error',err.message,'error');}
 }
 
-// ── send audit ────────────────────────────────────────────────
+// ── search users ──────────────────────────────────────────────
 function srchUsers(q){
   clearTimeout(srchTimer);
   var drop=document.getElementById('sdrop');
@@ -1949,45 +1183,49 @@ function srchUsers(q){
       if(!r.ok) return;
       var users=await r.json();
       drop.innerHTML=users.length
-        ?users.map(function(u){return '<div class="sitem" onclick="pickUser(\''+esc(u.username)+'\')"><strong>'+esc(u.fullName)+'</strong><div style="font-size:11px;color:var(--t2)">@'+esc(u.username)+'</div></div>';}).join('')
-        :'<div style="padding:12px;color:var(--t2)">No users found</div>';
+        ?users.map(function(u){
+          return '<div class="sitem" onclick="pickUser(\''+esc(u.username)+'\')">'+
+            '<div style="font-weight:600;font-size:.9rem;color:var(--t0)">'+esc(u.fullName)+'</div>'+
+            '<div style="font-size:.78rem;color:var(--t2);font-family:var(--font-mn)">@'+esc(u.username)+'</div></div>';
+        }).join('')
+        :'<div style="padding:14px;text-align:center;color:var(--t2);font-size:.875rem">No users found</div>';
       drop.classList.remove('hidden');
-    }catch(e){}
+    }catch(err){}
   },300);
 }
-
 function pickUser(u){
   document.getElementById('tUser').value=u;
   document.getElementById('sdrop').classList.add('hidden');
   document.getElementById('aDetail').focus();
 }
 
+// ── send audit ────────────────────────────────────────────────
 async function sendAudit(){
-  if(!ws||ws.readyState!==WebSocket.OPEN) return toast('Error','Connect first','error');
+  if(!ws||ws.readyState!==WebSocket.OPEN) return toast('Error','Please connect first','error');
   var target=document.getElementById('tUser').value.trim();
   var detail=document.getElementById('aDetail').value.trim();
-  if(!target||!detail) return toast('Error','All fields required','error');
+  if(!target||!detail) return toast('Error','All fields are required','error');
   try{
     var r=await fetch(API+'/audit',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({targetUser:target,requester:me.username,details:detail})});
     if(!r.ok) throw new Error('Send failed');
     var d=await r.json();
-    toast('Sent',d.message,'success',3000);
-    addLog('Audit sent to @'+target,'success');
+    toast('Audit Sent',d.message,'success',3000);
+    addLog('Audit dispatched to @'+target,'success');
     document.getElementById('tUser').value='';
     document.getElementById('aDetail').value='';
     auditCount++; localStorage.setItem('ac',auditCount);
     document.getElementById('sAud').textContent=auditCount;
-  }catch(e){toast('Error',e.message,'error');}
+  }catch(err){toast('Error',err.message,'error');}
 }
 
-// ── broadcast ───────────────────��─────────────────────────────
+// ── broadcast ─────────────────────────────────────────────────
 async function sendBroadcast(){
-  if(!ws||ws.readyState!==WebSocket.OPEN) return toast('Error','Connect first','error');
+  if(!ws||ws.readyState!==WebSocket.OPEN) return toast('Error','Please connect first','error');
   var target=document.getElementById('bcTarget').value;
   var msg=document.getElementById('bcMsg').value.trim();
-  if(!msg) return toast('Error','Message required','error');
-  if(!confirm('Broadcast to '+(target==='online'?'online users':'all users')+'?')) return;
+  if(!msg) return toast('Error','Message is required','error');
+  if(!confirm('Broadcast to '+(target==='online'?'all online users':'all registered users')+'?')) return;
   try{
     var r=await fetch(API+'/broadcast',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({message:msg,sender:me.username,targetType:target})});
@@ -1996,7 +1234,7 @@ async function sendBroadcast(){
     toast('Broadcast Sent',d.message,'success',5000);
     addLog('Broadcast: '+d.delivered+' delivered, '+d.queued+' queued','success');
     document.getElementById('bcMsg').value='';
-  }catch(e){toast('Error',e.message,'error');}
+  }catch(err){toast('Error',err.message,'error');}
 }
 
 // ── feedback (user) ───────────────────────────────────────────
@@ -2004,40 +1242,89 @@ async function submitFb(){
   var type=document.getElementById('fbT').value;
   var subj=document.getElementById('fbS').value.trim();
   var msg=document.getElementById('fbM').value.trim();
-  if(!subj||!msg) return toast('Error','All fields required','error');
+  if(!subj||!msg) return toast('Error','Subject and message are required','error');
   try{
     var r=await fetch(API+'/feedback',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({username:me.username,subject:subj,message:msg,type:type})});
     if(!r.ok) throw new Error('Submission failed');
-    toast('Submitted','Feedback sent to admin!','success',4000);
+    toast('Submitted','Your feedback has been sent to admin','success',4000);
     addLog('Feedback submitted','success');
     document.getElementById('fbS').value='';
     document.getElementById('fbM').value='';
-  }catch(e){toast('Error',e.message,'error');}
+  }catch(err){toast('Error',err.message,'error');}
 }
 
-// ── import ────────────────────────────────────────────────────
+// ── import users ──────────────────────────────────────────────
 async function importUsers(){
   var file=document.getElementById('xlFile').files[0];
   var st=document.getElementById('impSt');
+  var resultDiv=document.getElementById('importResults');
   if(!file) return;
   var form=new FormData(); form.append('file',file);
-  st.innerHTML='<span style="color:var(--primary)">Importing…</span>';
+  st.innerHTML='<span style="color:var(--cyan);display:flex;align-items:center;gap:6px"><svg class="ic" width="14" height="14"><use href="#ic-refresh"/></svg> Processing Excel file…</span>';
+  resultDiv.classList.add('hidden');
   try{
     var r=await fetch(API+'/import?admin='+me.username,{method:'POST',body:form});
     if(!r.ok) throw new Error('Import failed');
     var d=await r.json();
-    st.innerHTML='<span style="color:var(--success)">✅ Imported '+d.imported+', skipped '+d.skipped+'</span>';
-    toast('Done','Imported '+d.imported+' users','success');
+    st.innerHTML='<span style="color:var(--green);display:flex;align-items:center;gap:6px"><svg class="ic" width="14" height="14"><use href="#ic-check"/></svg> Imported '+d.imported+' users · Skipped '+d.skipped+'</span>';
+    toast('Import Complete',d.imported+' users imported successfully','success');
+    // Render unregistered users if present
+    if(d.unregistered&&d.unregistered.length>0){
+      renderUnregistered(d.unregistered,resultDiv);
+    }
     loadUsers();
-  }catch(e){
-    st.innerHTML='<span style="color:var(--error)">'+e.message+'</span>';
-    toast('Error',e.message,'error');
+  }catch(err){
+    st.innerHTML='<span style="color:var(--red);display:flex;align-items:center;gap:6px"><svg class="ic" width="14" height="14"><use href="#ic-x"/></svg> '+err.message+'</span>';
+    toast('Import Failed',err.message,'error');
   }
   document.getElementById('xlFile').value='';
 }
 
-// ── admin: users ──────────────────────────────────────────────
+function renderUnregistered(users,container){
+  container.classList.remove('hidden');
+  container.innerHTML=
+    '<div style="border-top:1px solid var(--br0);margin-top:16px;padding-top:16px">'+
+    '<div style="font-family:var(--font-hd);font-weight:600;color:var(--amber);margin-bottom:4px;display:flex;align-items:center;gap:8px">'+
+      '<svg class="ic" width="16" height="16"><use href="#ic-alert"/></svg> '+users.length+' Unregistered / No Gitea Account'+
+    '</div>'+
+    '<div style="font-size:.78rem;color:var(--t2);margin-bottom:14px">These users can be reached via WhatsApp. Their floor location is shown for in-person contact.</div>'+
+    users.map(function(u){
+      // Build a professional, URL-encoded WhatsApp message
+      var senderName=me&&me.full_name?me.full_name:(me?me.username:'Nexus Audit');
+      var location=u.floor?(' ('+u.floor+')'):'';
+      var waText='Hi '+u.name+location+',\n\n'+
+        'This is '+senderName+' reaching out from Nexus Audit.\n\n'+
+        'You have been requested for an audit. Please register on the Nexus Audit platform to receive real-time notifications:\n'+
+        'https://audit-notification.onrender.com\n\n'+
+        'Your registration details:\n- Gitea username is required to register\n\n'+
+        'Please confirm receipt of this message.\n\nThank you.';
+      var phone=u.phone?u.phone.replace(/\D/g,''):'';
+      var waUrl=phone?('https://wa.me/'+phone+'?text='+encodeURIComponent(waText)):'';
+      return '<div class="unreg-card">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">'+
+          '<div>'+
+            '<div class="unreg-name">'+esc(u.name)+'</div>'+
+            '<div class="unreg-meta">'+
+              (u.floor?'<span class="unreg-pill pill-floor"><svg class="ic" width="11" height="11"><use href="#ic-building"/></svg> '+esc(u.floor)+'</span>':
+                '<span class="unreg-pill" style="background:rgba(90,112,150,.1);border:1px solid var(--br0);color:var(--t2)"><svg class="ic" width="11" height="11"><use href="#ic-map-pin"/></svg> Floor unknown</span>')+
+              (phone?'<span class="unreg-pill pill-phone"><svg class="ic" width="11" height="11"><use href="#ic-phone"/></svg> '+esc(u.phone)+'</span>':'')+
+            '</div>'+
+          '</div>'+
+          (waUrl?
+            '<a href="'+waUrl+'" target="_blank" rel="noopener noreferrer" class="wa-btn">'+
+              '<svg class="ic" width="15" height="15"><use href="#ic-whatsapp"/></svg> Send WhatsApp Invite'+
+            '</a>':
+            '<span style="color:var(--t2);font-size:.8rem;display:inline-flex;align-items:center;gap:5px;padding:8px">'+
+              '<svg class="ic" width="13" height="13"><use href="#ic-alert"/></svg> No phone on record'+
+            '</span>')+
+        '</div>'+
+      '</div>';
+    }).join('')+
+    '</div>';
+}
+
+// ── admin: load users ─────────────────────────────────────────
 async function loadUsers(){
   try{
     var r=await fetch(API+'/admin/users',{headers:{'X-Admin-User':'admin'}});
@@ -2051,7 +1338,7 @@ async function loadUsers(){
     document.getElementById('uOn').textContent=online.length;
     document.getElementById('uNew').textContent=newT;
     document.getElementById('sTot').textContent=userList.length;
-  }catch(e){toast('Error',e.message,'error');}
+  }catch(err){toast('Error',err.message,'error');}
 }
 
 function renderUsers(list){
@@ -2061,20 +1348,27 @@ function renderUsers(list){
     return;
   }
   b.innerHTML=list.map(function(u){
-    var on=online.indexOf(u.username)>-1;
-    var ini=u.full_name.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
+    // FIX: use backend's u.online (from connections map), fallback to local array
+    var on=u.online===true||(u.online===undefined&&online.indexOf(u.username)>-1);
+    var ini=u.full_name?(u.full_name.split(' ').map(function(x){return x[0]||'';}).join('').toUpperCase().slice(0,2)):'?';
     var joined=new Date(u.created_at).toLocaleDateString();
     var last=u.last_login?new Date(u.last_login).toLocaleString():'Never';
     return '<tr>'+
       '<td><div style="display:flex;align-items:center;gap:10px">'+
         '<div class="uav">'+esc(ini)+'</div>'+
-        '<div><div style="font-weight:500;color:var(--t0)">'+esc(u.full_name)+'</div>'+
-        '<div style="font-size:11px;color:var(--t2);font-family:var(--font-mono)">@'+esc(u.username)+'</div></div></div></td>'+
-      '<td>'+esc(u.email)+'</td>'+
+        '<div>'+
+          '<div style="font-weight:600;color:var(--t0);font-family:var(--font-hd);font-size:.9rem">'+esc(u.full_name)+'</div>'+
+          '<div style="font-size:.75rem;color:var(--t2);font-family:var(--font-mn)">@'+esc(u.username)+'</div>'+
+        '</div></div></td>'+
+      '<td style="font-size:.8rem">'+esc(u.email)+'</td>'+
       '<td><span class="badge '+(on?'b-on':'b-off')+'"><span class="bdot"></span>'+(on?'Online':'Offline')+'</span></td>'+
-      '<td>'+joined+'</td>'+
-      '<td>'+last+'</td>'+
-      '<td style="text-align:center"><button class="bp bsm" onclick="qkAudit(\''+esc(u.username)+'\')" title="Send Audit">📤</button></td>'+
+      '<td style="font-size:.8rem">'+joined+'</td>'+
+      '<td style="font-size:.8rem">'+last+'</td>'+
+      '<td style="text-align:center">'+
+        '<button class="bg bsm" onclick="qkAudit(\''+esc(u.username)+'\')" title="Send Audit Request">'+
+          '<svg class="ic" width="13" height="13"><use href="#ic-send"/></svg>'+
+        '</button>'+
+      '</td>'+
       '</tr>';
   }).join('');
 }
@@ -2083,8 +1377,11 @@ function filterUsers(q){
   var query=(q||document.getElementById('uSrch').value).toLowerCase();
   var sf=document.getElementById('uFilter').value;
   var res=userList.filter(function(u){
-    var mq=!query||u.username.toLowerCase().indexOf(query)>-1||u.full_name.toLowerCase().indexOf(query)>-1||u.email.toLowerCase().indexOf(query)>-1;
-    var ms=sf==='all'||(sf==='online'&&online.indexOf(u.username)>-1)||(sf==='offline'&&online.indexOf(u.username)<0);
+    var mq=!query||u.username.toLowerCase().indexOf(query)>-1||
+      u.full_name.toLowerCase().indexOf(query)>-1||u.email.toLowerCase().indexOf(query)>-1;
+    // FIX: use u.online from backend; fallback to local online array
+    var isOn=u.online===true||(u.online===undefined&&online.indexOf(u.username)>-1);
+    var ms=sf==='all'||(sf==='online'&&isOn)||(sf==='offline'&&!isOn);
     return mq&&ms;
   });
   renderUsers(res);
@@ -2093,15 +1390,16 @@ function filterUsers(q){
 function exportCSV(){
   var rows=[['Username','Full Name','Email','Status','Joined','Last Login']];
   userList.forEach(function(u){
+    var isOn=u.online===true||(u.online===undefined&&online.indexOf(u.username)>-1);
     rows.push([u.username,u.full_name,u.email,
-      online.indexOf(u.username)>-1?'Online':'Offline',
+      isOn?'Online':'Offline',
       new Date(u.created_at).toLocaleDateString(),
       u.last_login?new Date(u.last_login).toLocaleString():'Never']);
   });
-  var csv=rows.map(function(r){return r.join(',');}).join('\n');
+  var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
   var a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download='users_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  a.download='nexus_users_'+new Date().toISOString().split('T')[0]+'.csv';
   a.click();
   toast('Exported','User list downloaded','success',3000);
 }
@@ -2121,34 +1419,38 @@ async function loadFeedback(){
     if(!r.ok) throw new Error('Failed');
     var d=await r.json();
     renderFeedback(d.feedback||[]);
-  }catch(e){toast('Error',e.message,'error');}
+  }catch(err){toast('Error',err.message,'error');}
 }
 
 function renderFeedback(items){
   var el=document.getElementById('fbList');
   if(!items||!items.length){
-    el.innerHTML='<div style="padding:40px;text-align:center;color:var(--t2)">No feedback yet</div>';
+    el.innerHTML='<div style="padding:40px;text-align:center;color:var(--t2)">No feedback submitted yet</div>';
     return;
   }
-  var icons={bug:'🐛',feature:'✨',general:'💭'};
+  var typeIcons={bug:'#ic-alert',feature:'#ic-trending',general:'#ic-message'};
+  var typeColors={bug:'var(--red)',feature:'var(--cyan)',general:'var(--t1)'};
   el.innerHTML=items.map(function(f){
-    var ic=icons[f.type]||'💭';
+    var ic=typeIcons[f.type]||'#ic-message';
+    var col=typeColors[f.type]||'var(--t1)';
     var resolved=f.status==='resolved';
-    return '<div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--radius-md);padding:13px;margin-bottom:10px">'+
-      '<div style="display:flex;justify-content:space-between;margin-bottom:6px">'+
-        '<div>'+
-          '<span style="font-weight:600;color:var(--t0)">@'+esc(f.username)+'</span>'+
-          '<span style="margin-left:8px;padding:2px 8px;background:var(--bg3);border-radius:4px;font-size:11px;color:var(--t1)">'+ic+' '+f.type+'</span>'+
-          '<span style="margin-left:6px;padding:2px 8px;background:'+(resolved?'rgba(39,174,96,.1)':'rgba(242,153,74,.1)')+';border-radius:4px;font-size:11px;color:'+(resolved?'var(--success)':'var(--warning)')+'">'+f.status+'</span>'+
+    return '<div class="unreg-card">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'+
+        '<div style="display:flex;align-items:center;gap:8px">'+
+          '<svg class="ic" width="14" height="14" style="color:'+col+'"><use href="'+ic+'"/></svg>'+
+          '<span style="font-weight:600;color:var(--t0);font-family:var(--font-hd)">@'+esc(f.username)+'</span>'+
+          '<span style="padding:2px 8px;background:var(--c3);border:1px solid var(--br1);border-radius:4px;font-size:.72rem;color:var(--t1);font-family:var(--font-hd)">'+f.type+'</span>'+
+          '<span style="padding:2px 8px;background:'+(resolved?'rgba(34,201,122,.12)':'rgba(245,158,58,.12)')+';border-radius:4px;font-size:.72rem;color:'+(resolved?'var(--green)':'var(--amber)')+';font-family:var(--font-hd)">'+f.status+'</span>'+
         '</div>'+
-        '<span style="font-size:12px;color:var(--t2)">'+timeAgo(new Date(f.timestamp))+'</span>'+
+        '<span style="font-size:.75rem;color:var(--t2);font-family:var(--font-mn)">'+timeAgo(new Date(f.timestamp))+'</span>'+
       '</div>'+
-      '<div style="font-weight:500;color:var(--t0);margin-bottom:4px">'+esc(f.subject)+'</div>'+
-      '<div style="font-size:13px;color:var(--t1);margin-bottom:10px">'+esc(f.message)+'</div>'+
+      '<div style="font-weight:600;color:var(--t0);font-family:var(--font-hd);margin-bottom:4px">'+esc(f.subject)+'</div>'+
+      '<div style="font-size:.875rem;color:var(--t1);margin-bottom:12px;line-height:1.6">'+esc(f.message)+'</div>'+
       '<div style="display:flex;gap:8px">'+
-        '<button class="bs bsm" onclick="replyFb('+f.id+',\''+esc(f.username)+'\')">💬 Reply</button>'+
-        (!resolved?'<button class="bg bsm" onclick="resolveFb('+f.id+')">✅ Resolve</button>':'')+
-      '</div></div>';
+        '<button class="bg bsm" onclick="replyFb('+f.id+',\''+esc(f.username)+'\')"><svg class="ic" width="13" height="13"><use href="#ic-reply"/></svg> Reply</button>'+
+        (!resolved?'<button class="bs bsm" onclick="resolveFb('+f.id+')"><svg class="ic" width="13" height="13"><use href="#ic-check"/></svg> Resolve</button>':'')+
+      '</div>'+
+      '</div>';
   }).join('');
 }
 
@@ -2157,16 +1459,16 @@ async function resolveFb(id){
     await fetch(API+'/admin/feedback/update',{method:'POST',
       headers:{'Content-Type':'application/json','X-Admin-User':'admin'},
       body:JSON.stringify({id:id,status:'resolved'})});
-    toast('Done','Marked as resolved','success',3000);
+    toast('Resolved','Feedback marked as resolved','success',3000);
     loadFeedback();
-  }catch(e){toast('Error',e.message,'error');}
+  }catch(err){toast('Error',err.message,'error');}
 }
 
 function replyFb(id,username){
   document.getElementById('tUser').value=username;
   document.getElementById('auditCard').scrollIntoView({behavior:'smooth'});
   document.getElementById('aDetail').focus();
-  toast('Ready','Send reply to @'+username,'info',3000);
+  toast('Quick Send','Compose an audit reply for @'+username,'info',3000);
 }
 
 // ── admin: stats ──────────────────────────────────────────────
@@ -2180,30 +1482,79 @@ async function loadStats(){
     document.getElementById('stA').textContent=d.total_audits||0;
     document.getElementById('stF').textContent=d.pending_feedback||0;
     document.getElementById('sFb').textContent=d.pending_feedback||0;
-  }catch(e){toast('Error',e.message,'error');}
+  }catch(err){toast('Error',err.message,'error');}
 }
 
-// ── permissions ───────────────────────────────────────────────
+// ── notifications permission ──────────────────────────────────
+// FIX: Firefox requires Notification.requestPermission() to be called from
+// a user gesture handler (click). We never auto-call it on load — only on
+// explicit button click. Both promise-based (Chrome/Firefox) and legacy
+// callback (Safari) APIs are handled.
 function checkPerm(){
   var b=document.getElementById('permBanner');
-  b.style.display=('Notification' in window&&Notification.permission==='default')?'flex':'none';
+  if(!('Notification' in window)){b.style.display='none';return;}
+  b.style.display=Notification.permission==='granted'?'none':'flex';
 }
 
 function reqPerm(){
-  if(!('Notification' in window)) return;
-  Notification.requestPermission().then(function(p){
-    if(p==='granted') toast('Enabled','Desktop notifications enabled','success',3000);
+  // Guard: Notification API not supported
+  if(!('Notification' in window)){
+    toast('Not Supported','Your browser does not support desktop notifications','info',4000);
+    return;
+  }
+  // Already granted — nothing to do
+  if(Notification.permission==='granted'){
+    document.getElementById('permBanner').style.display='none';
+    return;
+  }
+  // Firefox 72+ requires a user-gesture; this function is only called from onclick — safe.
+  // requestPermission() returns a Promise in modern browsers; a string in legacy Safari.
+  var result=Notification.requestPermission(function(p){
+    // Legacy callback path (older Safari / some mobile browsers)
+    if(p==='granted') toast('Notifications Enabled','Desktop alerts are now active','success',3000);
     document.getElementById('permBanner').style.display='none';
   });
+  // Promise path (Chrome, Firefox, Edge)
+  if(result&&typeof result.then==='function'){
+    result.then(function(p){
+      if(p==='granted'){
+        toast('Notifications Enabled','You will receive alerts for new audits','success',3000);
+      }else if(p==='denied'){
+        toast('Notifications Blocked','Go to browser settings to allow notifications','info',6000);
+      }
+      document.getElementById('permBanner').style.display='none';
+    }).catch(function(){
+      document.getElementById('permBanner').style.display='none';
+    });
+  }
 }
 
+// deskNotif: cross-browser desktop notification with proper error handling.
+// Firefox requires the page to be focused OR the user to have interacted first.
 function deskNotif(sender,message){
-  if('Notification' in window&&Notification.permission==='granted'){
-    try{
-      var n=new Notification(sender,{body:message,requireInteraction:false});
-      n.onclick=function(){window.focus();n.close();};
-      setTimeout(function(){n.close();},8000);
-    }catch(e){}
+  if(!('Notification' in window)||Notification.permission!=='granted') return;
+  try{
+    var opts={
+      body:message,
+      tag:'nexus-audit-'+Date.now(), // unique tag prevents deduplication
+      requireInteraction:false
+    };
+    var n=new Notification('Nexus Audit — @'+sender,opts);
+    n.onclick=function(){
+      try{window.focus();}catch(e){}
+      n.close();
+    };
+    // Auto-close after 8s — Firefox doesn't auto-close
+    setTimeout(function(){try{n.close();}catch(e){}},8000);
+  }catch(err){
+    // ServiceWorker path for some Firefox configs
+    if(navigator.serviceWorker&&navigator.serviceWorker.controller){
+      navigator.serviceWorker.controller.postMessage({
+        type:'SHOW_NOTIFICATION',
+        title:'Nexus Audit — @'+sender,
+        body:message
+      });
+    }
   }
 }
 
@@ -2224,12 +1575,14 @@ function toast(title,msg,type,dur){
   var c=document.getElementById('tc');
   var t=document.createElement('div');
   t.className='toast '+(type||'info');
-  var icons={success:'✅',error:'❌',warning:'⚠️',info:'ℹ️',audit:'🔔'};
-  t.innerHTML='<div class="ticon">'+(icons[type]||'ℹ️')+'</div>'+
+  var icMap={success:'#ic-check',error:'#ic-x',warning:'#ic-alert',info:'#ic-info',audit:'#ic-bell'};
+  var ic=icMap[type]||'#ic-info';
+  t.innerHTML=
+    '<div class="ticon"><svg class="ic" width="18" height="18"><use href="'+ic+'"/></svg></div>'+
     '<div class="tbody"><div class="ttitle">'+esc(title)+'</div><div class="tmsg">'+esc(msg)+'</div></div>'+
-    '<button class="tcls" onclick="this.parentElement.remove()">×</button>';
+    '<button class="tcls" onclick="this.parentElement.remove()"><svg class="ic" width="14" height="14"><use href="#ic-x"/></svg></button>';
   c.appendChild(t);
-  if(dur>0) setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove();},300);},dur);
+  if(dur>0) setTimeout(function(){t.style.opacity='0';setTimeout(function(){try{t.remove();}catch(e){}},300);},dur);
 }
 
 // ── utils ─────────────────────────────────────────────────────
@@ -2239,7 +1592,6 @@ function esc(s){
   d.textContent=String(s);
   return d.innerHTML;
 }
-
 function timeAgo(d){
   var diff=Math.floor((Date.now()-new Date(d))/1000);
   if(diff<60) return 'Just now';
@@ -2250,18 +1602,70 @@ function timeAgo(d){
 
 // ── init ──────────────────────────────────────────────────────
 window.onload=function(){
+  // Handle password reset page: /reset-password?token=xxx
+  var params=new URLSearchParams(window.location.search);
+  var resetToken=params.get('token');
+  if(resetToken&&window.location.pathname.indexOf('reset-password')>-1){
+    showResetPage(resetToken);
+    return;
+  }
   try{
     var s=localStorage.getItem('me');
     if(s){me=JSON.parse(s);showApp();}
-  }catch(e){localStorage.removeItem('me');}
+  }catch(err){localStorage.removeItem('me');}
 };
+
+// Reset password page — shown when user clicks email link
+function showResetPage(token){
+  document.getElementById('authSec').classList.remove('hidden');
+  document.getElementById('authSec').innerHTML=
+    '<div class="card" style="max-width:460px;margin:70px auto">'+
+    '<div style="text-align:center;margin-bottom:22px">'+
+      '<div style="width:56px;height:56px;background:linear-gradient(135deg,var(--cyan),var(--blue2));border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 0 24px var(--cyan-gl)">'+
+        '<svg class="ic" width="26" height="26" style="color:#fff"><use href="#ic-key"/></svg>'+
+      '</div>'+
+      '<div style="font-family:var(--font-hd);font-size:1.3rem;font-weight:700;letter-spacing:-.02em">Set New Password</div>'+
+      '<div style="color:var(--t2);font-size:.875rem;margin-top:4px">Enter your new password below</div>'+
+    '</div>'+
+    '<div class="fg"><label>New Password</label>'+
+      '<div class="inp-wrap pwd-wrap">'+
+        '<input id="newPwd" type="password" placeholder="Min 6 characters" style="padding-left:40px">'+
+        '<svg class="ic inp-ic" width="16" height="16"><use href="#ic-lock"/></svg>'+
+        '<button type="button" class="pwd-toggle" onclick="togglePwd(\'newPwd\',this)"><svg class="ic" width="16" height="16"><use href="#ic-eye"/></svg></button>'+
+      '</div></div>'+
+    '<div class="fg"><label>Confirm Password</label>'+
+      '<div class="inp-wrap pwd-wrap">'+
+        '<input id="confirmPwd" type="password" placeholder="Repeat password" style="padding-left:40px">'+
+        '<svg class="ic inp-ic" width="16" height="16"><use href="#ic-lock"/></svg>'+
+        '<button type="button" class="pwd-toggle" onclick="togglePwd(\'confirmPwd\',this)"><svg class="ic" width="16" height="16"><use href="#ic-eye"/></svg></button>'+
+      '</div></div>'+
+    '<button class="bp bfull" onclick="submitReset(\''+token+'\')">'+
+      '<svg class="ic" width="16" height="16"><use href="#ic-check"/></svg> Update Password'+
+    '</button>'+
+    '</div>';
+}
+
+async function submitReset(token){
+  var pwd=document.getElementById('newPwd').value;
+  var conf=document.getElementById('confirmPwd').value;
+  if(!pwd||pwd.length<6) return toast('Error','Password must be at least 6 characters','error');
+  if(pwd!==conf) return toast('Error','Passwords do not match','error');
+  try{
+    var r=await fetch(API+'/reset-password',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({token:token,password:pwd})});
+    var msg=await r.text();
+    if(!r.ok) return toast('Error',msg,'error');
+    toast('Password Updated','You can now log in with your new password','success',6000);
+    setTimeout(function(){window.location.href='/';},2500);
+  }catch(err){toast('Error','Reset failed: '+err.message,'error');}
+}
 
 document.addEventListener('click',function(e){
   var panel=document.getElementById('npanel');
   var bell=document.querySelector('.nbell');
   if(panel&&!panel.contains(e.target)&&bell&&!bell.contains(e.target))
     panel.classList.add('hidden');
-
   var drop=document.getElementById('sdrop');
   var wrap=document.querySelector('.swrap');
   if(drop&&wrap&&!wrap.contains(e.target))
