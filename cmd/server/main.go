@@ -15,6 +15,8 @@ func main() {
 	}
 
 	websocket.InitDB()
+	
+	
 
 	// ── WebSocket ────────────────────────────────────────────────
 	http.HandleFunc("/ws", websocket.EchoHandler)
@@ -56,4 +58,5 @@ func main() {
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("❌ Server error: %v", err)
 	}
+	
 }

@@ -49,9 +49,9 @@ var (
 )
 
 const (
-	bcryptCost           = 12  // bcrypt work factor
-	maxPasscodeAttempts  = 5   // max attempts per hour
-	passcodeCooldown     = time.Hour
+	bcryptCost          = 12 // bcrypt work factor
+	maxPasscodeAttempts = 5  // max attempts per hour
+	passcodeCooldown    = time.Hour
 )
 
 // ═══════════════════════════════════════════════════════════════
@@ -151,11 +151,60 @@ func InitDB() {
 		log.Fatal("❌ Failed to create tables:", err)
 	}
 
+	// ── MIGRATIONS ────────────────────────────────────────────────
+	// FIX: Add whatsapp column to users table if it doesn't exist.
+	// This enriches registered users with contact info from imported_users.
+	runMigrations()
+
 	log.Println("✅ PostgreSQL initialized successfully")
 
 	// Start cleanup goroutines
 	go cleanupRateLimiter()
 	go monitorSystem()
+}
+
+// runMigrations applies any schema changes needed for new features.
+// All migrations are idempotent — safe to run on every startup.
+func runMigrations() {
+	migrations := []struct {
+		name string
+		sql  string
+	}{
+		{
+			name: "add_whatsapp_to_users",
+			sql:  `ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(50)`,
+		},
+		{
+			name: "add_floor_to_users",
+			sql:  `ALTER TABLE users ADD COLUMN IF NOT EXISTS floor VARCHAR(100)`,
+		},
+	}
+
+	for _, m := range migrations {
+		if _, err := db.Exec(m.sql); err != nil {
+			log.Printf("⚠️ Migration '%s' warning: %v", m.name, err)
+		} else {
+			log.Printf("✅ Migration '%s' applied", m.name)
+		}
+	}
+
+	// Backfill: sync floor + whatsapp from imported_users into users table
+	// for any users who registered after being imported.
+	_, err := db.Exec(`
+		UPDATE users u
+		SET 
+			floor    = COALESCE(u.floor,    i.floor),
+			whatsapp = COALESCE(u.whatsapp, i.whatsapp)
+		FROM imported_users i
+		WHERE i.gitea_username = u.username
+		  AND (u.floor IS NULL OR u.whatsapp IS NULL)
+		  AND (i.floor IS NOT NULL OR i.whatsapp IS NOT NULL)
+	`)
+	if err != nil {
+		log.Printf("⚠️ Backfill migration warning: %v", err)
+	} else {
+		log.Println("✅ Backfill floor/whatsapp from imported_users complete")
+	}
 }
 
 // monitorSystem provides health checks and prevents memory leaks
@@ -180,7 +229,6 @@ func monitorSystem() {
 // HELPERS
 // ═══════════════════════════════════════════════════════════════
 
-// hashPasswordBcrypt hashes a password using bcrypt cost 12.
 func hashPasswordBcrypt(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
 	if err != nil {
@@ -189,29 +237,24 @@ func hashPasswordBcrypt(password string) (string, error) {
 	return string(hash), nil
 }
 
-// verifyPasswordBcrypt checks if a password matches its bcrypt hash.
 func verifyPasswordBcrypt(password, hash string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
 }
 
-// hashPasswordSHA256 (legacy) — used for detecting old passwords.
 func hashPasswordSHA256(p string) string {
 	h := sha256.Sum256([]byte(p))
 	return hex.EncodeToString(h[:])
 }
 
-// isSHA256Hash detects if a hash is SHA256 (64 hex chars).
 func isSHA256Hash(hash string) bool {
 	return len(hash) == 64 && regexp.MustCompile(`^[a-f0-9]{64}$`).MatchString(hash)
 }
 
-// hashToken hashes a raw reset token for safe DB storage.
 func hashToken(t string) string {
 	h := sha256.Sum256([]byte(t))
 	return hex.EncodeToString(h[:])
 }
 
-// generateToken creates a cryptographically secure 32-byte random token.
 func generateToken() (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
@@ -226,7 +269,6 @@ func userExists(username string) bool {
 	return ok
 }
 
-// isAdmin enforces backend role check — not just a frontend flag.
 func isAdmin(r *http.Request) bool {
 	return r.Header.Get("X-Admin-User") == "admin"
 }
@@ -246,39 +288,33 @@ func jsonErr(w http.ResponseWriter, code int, msg string) {
 	http.Error(w, msg, code)
 }
 
-// deliver sends a JSON payload to a connected user via WebSocket.
-// Returns true only if the message was written successfully.
-// ENHANCED: Better error logging for notification tracking.
 func deliver(username string, payload map[string]interface{}) bool {
 	mu.RLock()
 	conn, ok := connections[username]
 	mu.RUnlock()
-	
+
 	if !ok {
 		return false
 	}
-	
+
 	b, _ := json.Marshal(payload)
 	err := conn.WriteMessage(gorilla.TextMessage, b)
-	
+
 	if err != nil {
-		// Connection dead but not yet cleaned up — mark as queued
 		log.Printf("⚠️ Failed to deliver notification to %s: %v", username, err)
 		return false
 	}
-	
+
 	log.Printf("✅ Delivered notification ID %v to %s", payload["id"], username)
 	return true
 }
 
-// queue persists an undelivered notification so the user receives it on next connect.
 func queue(target, sender, message string) {
 	dbMu.Lock()
 	defer dbMu.Unlock()
 	db.Exec("INSERT INTO notifications(target,sender,message) VALUES($1,$2,$3)", target, sender, message)
 }
 
-// getEnv returns the env value or falls back to the provided default.
 func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
@@ -288,8 +324,6 @@ func getEnv(key, fallback string) string {
 
 // ═══════════════════════════════════════════════════════════════
 // RATE LIMITING
-// Tracks passcode verification attempts. Max 5 per hour per username.
-// Auto-cleanup runs every 10 minutes to prevent memory bloat.
 // ═══════════════════════════════════════════════════════════════
 
 func recordPasscodeAttempt(username string) {
@@ -299,7 +333,6 @@ func recordPasscodeAttempt(username string) {
 	now := time.Now()
 	attempts := passcodeLimiter[username]
 
-	// Filter out attempts older than 1 hour
 	var recent []time.Time
 	for _, t := range attempts {
 		if now.Sub(t) < passcodeCooldown {
@@ -355,15 +388,14 @@ func cleanupRateLimiter() {
 
 // ═══════════════════════════════════════════════════════════════
 // AUTH — REGISTER
-// Now includes optional 6-digit recovery passcode (bcrypt hashed).
 // ═══════════════════════════════════════════════════════════════
 
 type registerReq struct {
-	Username       string `json:"username"`
-	Email          string `json:"email"`
-	FullName       string `json:"full_name"`
-	Password       string `json:"password"`
-	ResetPasscode  string `json:"reset_passcode"` // 6 digits, optional
+	Username      string `json:"username"`
+	Email         string `json:"email"`
+	FullName      string `json:"full_name"`
+	Password      string `json:"password"`
+	ResetPasscode string `json:"reset_passcode"`
 }
 
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
@@ -401,7 +433,6 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate recovery passcode (must be exactly 6 digits if provided)
 	if req.ResetPasscode != "" {
 		if !regexp.MustCompile(`^\d{6}$`).MatchString(req.ResetPasscode) {
 			jsonErr(w, 400, "Recovery passcode must be exactly 6 digits")
@@ -409,7 +440,6 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Hash password with bcrypt
 	passwordHash, err := hashPasswordBcrypt(req.Password)
 	if err != nil {
 		log.Printf("❌ Bcrypt error: %v", err)
@@ -417,7 +447,6 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Hash passcode with bcrypt (if provided)
 	var passcodeHash sql.NullString
 	if req.ResetPasscode != "" {
 		hash, err := hashPasswordBcrypt(req.ResetPasscode)
@@ -451,13 +480,24 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Auto-sync imported_users table if this username was imported
+	// Auto-sync: pull floor + whatsapp from imported_users into users table on registration
 	go func() {
 		db.Exec(`
 			UPDATE imported_users 
 			SET is_registered = TRUE, registered_user_id = $1 
 			WHERE gitea_username = $2 AND is_registered = FALSE
 		`, id, req.Username)
+
+		// Backfill contact info from imported_users into the new user record
+		db.Exec(`
+			UPDATE users u
+			SET 
+				floor    = COALESCE(u.floor,    i.floor),
+				whatsapp = COALESCE(u.whatsapp, i.whatsapp)
+			FROM imported_users i
+			WHERE i.gitea_username = u.username
+			  AND u.username = $1
+		`, req.Username)
 	}()
 
 	log.Printf("✅ Registered: %s", req.Username)
@@ -477,7 +517,6 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 // ═══════════════════════════════════════════════════════════════
 // AUTH — LOGIN
-// Auto-migrates SHA256 passwords to bcrypt on successful login.
 // ═══════════════════════════════════════════════════════════════
 
 type loginReq struct {
@@ -525,18 +564,15 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if password is SHA256 (legacy) or bcrypt
 	var passwordValid bool
 	var needsMigration bool
 
 	if isSHA256Hash(passwordHash) {
-		// Legacy SHA256 password
 		if hashPasswordSHA256(req.Password) == passwordHash {
 			passwordValid = true
 			needsMigration = true
 		}
 	} else {
-		// Bcrypt password
 		passwordValid = verifyPasswordBcrypt(req.Password, passwordHash)
 	}
 
@@ -545,7 +581,6 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Auto-migrate SHA256 → bcrypt on successful login
 	if needsMigration {
 		newHash, err := hashPasswordBcrypt(req.Password)
 		if err == nil {
@@ -571,9 +606,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// AUTH — VERIFY PASSCODE (Step 1 of passcode-based reset)
-// Validates username + 6-digit passcode, returns short-lived token.
-// Rate limited: max 5 attempts per hour per username.
+// AUTH — VERIFY PASSCODE
 // ═══════════════════════════════════════════════════════════════
 
 func VerifyPasscodeHandler(w http.ResponseWriter, r *http.Request) {
@@ -610,17 +643,15 @@ func VerifyPasscodeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Rate limiting check
 	if isRateLimited(body.Username) {
 		jsonErr(w, 429, "Too many attempts. Please try again in 1 hour.")
 		return
 	}
 
-	// Fetch user
 	var (
-		userID        int
-		email         string
-		passcodeHash  sql.NullString
+		userID       int
+		email        string
+		passcodeHash sql.NullString
 	)
 
 	err := db.QueryRow(
@@ -640,14 +671,12 @@ func VerifyPasscodeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify passcode (constant-time via bcrypt)
 	if !verifyPasswordBcrypt(body.Passcode, passcodeHash.String) {
 		recordPasscodeAttempt(body.Username)
 		jsonErr(w, 401, "Invalid username or passcode")
 		return
 	}
 
-	// Generate short-lived token (15 minutes)
 	token, err := generateToken()
 	if err != nil {
 		log.Printf("❌ Token generation failed: %v", err)
@@ -658,10 +687,8 @@ func VerifyPasscodeHandler(w http.ResponseWriter, r *http.Request) {
 	tokenHash := hashToken(token)
 	expiresAt := time.Now().UTC().Add(15 * time.Minute)
 
-	// Invalidate old tokens for this email
 	db.Exec("UPDATE password_resets SET used=TRUE WHERE email=$1 AND used=FALSE", email)
 
-	// Store token
 	dbMu.Lock()
 	_, insertErr := db.Exec(
 		"INSERT INTO password_resets(email,token_hash,expires_at) VALUES($1,$2,$3)",
@@ -685,8 +712,7 @@ func VerifyPasscodeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// AUTH — RESET PASSWORD VIA PASSCODE (Step 2)
-// Uses the token from VerifyPasscodeHandler to update password.
+// AUTH — RESET PASSWORD VIA PASSCODE
 // ═══════════════════════════════════════════════════════════════
 
 func ResetPasswordPasscodeHandler(w http.ResponseWriter, r *http.Request) {
@@ -750,7 +776,6 @@ func ResetPasswordPasscodeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Hash new password with bcrypt
 	newHash, err := hashPasswordBcrypt(body.Password)
 	if err != nil {
 		log.Printf("❌ Bcrypt error: %v", err)
@@ -758,7 +783,6 @@ func ResetPasswordPasscodeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update password and mark token used
 	dbMu.Lock()
 	defer dbMu.Unlock()
 
@@ -776,9 +800,6 @@ func ResetPasswordPasscodeHandler(w http.ResponseWriter, r *http.Request) {
 
 // ═══════════════════════════════════════════════════════════════
 // WEBSOCKET
-// FIX: connections map is the authoritative source of online status.
-// Users are added on connect (mu.Lock) and removed on disconnect (mu.Lock).
-// The ping/pong mechanism detects dead connections within 70s.
 // ═══════════════════════════════════════════════════════════════
 
 func EchoHandler(w http.ResponseWriter, r *http.Request) {
@@ -792,7 +813,6 @@ func EchoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Reject duplicate connections — check-then-set under write lock
 	mu.Lock()
 	if _, already := connections[username]; already {
 		mu.Unlock()
@@ -807,14 +827,12 @@ func EchoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Register under write lock — this is what makes the user "Online"
 	mu.Lock()
 	connections[username] = conn
 	onlineCount := len(connections)
 	mu.Unlock()
 	log.Printf("🔌 WS connected: %s (%d online)", username, onlineCount)
 
-	// Deregister under write lock on any exit path — this makes the user "Offline"
 	defer func() {
 		mu.Lock()
 		delete(connections, username)
@@ -824,14 +842,12 @@ func EchoHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("🔌 WS disconnected: %s (%d online)", username, offlineCount)
 	}()
 
-	// 70s read deadline, reset on every pong — detects dead connections
 	conn.SetReadDeadline(time.Now().Add(70 * time.Second))
 	conn.SetPongHandler(func(string) error {
 		conn.SetReadDeadline(time.Now().Add(70 * time.Second))
 		return nil
 	})
 
-	// Ping goroutine — keeps connection alive, detects dropouts
 	stop := make(chan struct{})
 	defer close(stop)
 	go func() {
@@ -850,10 +866,8 @@ func EchoHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	// Deliver any notifications queued while user was offline
 	sendQueued(conn, username)
 
-	// Read loop — messages are echo'd back (keep-alive compatibility)
 	for {
 		msgType, msg, err := conn.ReadMessage()
 		if err != nil {
@@ -916,8 +930,7 @@ func sendQueued(conn *gorilla.Conn, username string) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SYNC NOTIFICATIONS (NEW - FIX FOR ISSUE #1)
-// Polling fallback for idle tabs. Returns undelivered notifications.
+// SYNC NOTIFICATIONS
 // ═══════════════════════════════════════════════════════════════
 
 func SyncNotificationsHandler(w http.ResponseWriter, r *http.Request) {
@@ -928,7 +941,6 @@ func SyncNotificationsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return all undelivered notifications for this user
 	rows, err := db.Query(`
 		SELECT id, sender, message, reply_to, timestamp
 		FROM notifications
@@ -944,11 +956,11 @@ func SyncNotificationsHandler(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	type notif struct {
-		ID       int64     `json:"id"`
-		Sender   string    `json:"sender"`
-		Message  string    `json:"message"`
-		ReplyTo  *int64    `json:"replyTo"`
-		Time     time.Time `json:"timestamp"`
+		ID      int64     `json:"id"`
+		Sender  string    `json:"sender"`
+		Message string    `json:"message"`
+		ReplyTo *int64    `json:"replyTo"`
+		Time    time.Time `json:"timestamp"`
 	}
 
 	var items []notif
@@ -974,8 +986,7 @@ func SyncNotificationsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MARK DELIVERED (NEW - FIX FOR ISSUE #1)
-// Marks notifications as delivered after sync fetch.
+// MARK DELIVERED
 // ═══════════════════════════════════════════════════════════════
 
 func MarkDeliveredHandler(w http.ResponseWriter, r *http.Request) {
@@ -1004,7 +1015,6 @@ func MarkDeliveredHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build query with placeholders
 	for _, id := range body.IDs {
 		db.Exec("UPDATE notifications SET delivered=TRUE WHERE id=$1 AND target=$2", id, body.User)
 	}
@@ -1015,8 +1025,6 @@ func MarkDeliveredHandler(w http.ResponseWriter, r *http.Request) {
 
 // ═══════════════════════════════════════════════════════════════
 // AUDIT
-// Enhanced to check imported_users table for unregistered users.
-// Returns WhatsApp info if user is unregistered but in import list.
 // ═══════════════════════════════════════════════════════════════
 
 type auditReq struct {
@@ -1051,21 +1059,17 @@ func AuditHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if user is registered
 	if !userExists(req.TargetUser) {
-		// Check if in imported_users (unregistered but in Excel)
 		var firstName, lastName, floor, whatsapp string
 		err := db.QueryRow(`
-			SELECT first_name, last_name, floor, whatsapp
+			SELECT first_name, last_name, COALESCE(floor,''), COALESCE(whatsapp,'')
 			FROM imported_users
 			WHERE gitea_username = $1 AND is_registered = FALSE
 		`, req.TargetUser).Scan(&firstName, &lastName, &floor, &whatsapp)
 
 		if err == nil {
-			// User is in Excel but not registered
 			fullName := strings.TrimSpace(firstName + " " + lastName)
 
-			// Build WhatsApp URL
 			phone := strings.Map(func(r rune) rune {
 				if r >= '0' && r <= '9' {
 					return r
@@ -1076,7 +1080,6 @@ func AuditHandler(w http.ResponseWriter, r *http.Request) {
 			var waURL string
 			if phone != "" {
 				senderName := "Admin"
-				// Try to get requester's full name
 				var reqFullName string
 				db.QueryRow("SELECT full_name FROM users WHERE username=$1", req.Requester).Scan(&reqFullName)
 				if reqFullName != "" {
@@ -1117,12 +1120,10 @@ func AuditHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Not in Excel at all
 		jsonErr(w, 404, "Target user not found")
 		return
 	}
 
-	// User is registered → send audit normally
 	msg := fmt.Sprintf("@%s: %s", req.Requester, req.Details)
 
 	var nid int64
@@ -1185,7 +1186,6 @@ func ReplyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Find the original sender to route the reply to them
 	var origSender string
 	if err := db.QueryRow(
 		"SELECT sender FROM notifications WHERE id=$1", req.NotificationID,
@@ -1384,15 +1384,12 @@ func FeedbackHandler(w http.ResponseWriter, r *http.Request) {
 
 // ═══════════════════════════════════════════════════════════════
 // ONLINE USERS
-// FIX: Reads directly from the connections map — always accurate.
-// Total user count is backend-gated to admin only.
 // ═══════════════════════════════════════════════════════════════
 
 func OnlineUsersHandler(w http.ResponseWriter, r *http.Request) {
 	cors(w)
 	w.Header().Set("Content-Type", "application/json")
 
-	// Read online users from the authoritative in-memory map
 	mu.RLock()
 	list := make([]string, 0, len(connections))
 	for u := range connections {
@@ -1405,7 +1402,6 @@ func OnlineUsersHandler(w http.ResponseWriter, r *http.Request) {
 		"count":  len(list),
 	}
 
-	// Only expose total registered count to admin — backend enforced
 	if isAdmin(r) {
 		var total int
 		db.QueryRow("SELECT COUNT(*) FROM users").Scan(&total)
@@ -1417,8 +1413,10 @@ func OnlineUsersHandler(w http.ResponseWriter, r *http.Request) {
 
 // ═══════════════════════════════════════════════════════════════
 // SEARCH
-// Enhanced to return BOTH registered AND unregistered users.
-// Unregistered users come from imported_users table.
+// FIX: Now returns floor + whatsapp for BOTH registered and
+// unregistered users by joining/querying imported_users.
+// Registered users get contact info from users table (which is
+// backfilled from imported_users on registration/migration).
 // ═══════════════════════════════════════════════════════════════
 
 func SearchUsersHandler(w http.ResponseWriter, r *http.Request) {
@@ -1441,28 +1439,42 @@ func SearchUsersHandler(w http.ResponseWriter, r *http.Request) {
 
 	var results []searchResult
 
-	// Search registered users
-	rows, err := db.Query(
-		"SELECT username, full_name FROM users WHERE username ILIKE $1 OR full_name ILIKE $1 LIMIT 10",
-		"%"+q+"%",
-	)
+	// FIX: LEFT JOIN imported_users so registered users also get floor + whatsapp.
+	// Priority: users.floor/whatsapp first (user may have updated), then imported_users.
+	rows, err := db.Query(`
+		SELECT
+			u.username,
+			u.full_name,
+			COALESCE(NULLIF(u.floor, ''),    NULLIF(i.floor, ''),    '') AS floor,
+			COALESCE(NULLIF(u.whatsapp, ''), NULLIF(i.whatsapp, ''), '') AS whatsapp
+		FROM users u
+		LEFT JOIN imported_users i ON i.gitea_username = u.username
+		WHERE u.username ILIKE $1 OR u.full_name ILIKE $1
+		LIMIT 10
+	`, "%"+q+"%")
 	if err == nil {
 		defer rows.Close()
 		for rows.Next() {
-			var username, fullName string
-			if rows.Scan(&username, &fullName) == nil {
+			var username, fullName, floor, whatsapp string
+			if rows.Scan(&username, &fullName, &floor, &whatsapp) == nil {
 				results = append(results, searchResult{
 					Username: username,
 					FullName: fullName,
 					Status:   "registered",
+					Floor:    floor,
+					WhatsApp: whatsapp,
 				})
 			}
 		}
+	} else {
+		log.Printf("❌ Search registered users error: %v", err)
 	}
 
 	// Search unregistered users (imported but not registered)
 	rows2, err2 := db.Query(`
-		SELECT gitea_username, first_name || ' ' || last_name as full_name, floor, whatsapp
+		SELECT gitea_username, first_name || ' ' || last_name AS full_name,
+		       COALESCE(floor, '') AS floor,
+		       COALESCE(whatsapp, '') AS whatsapp
 		FROM imported_users
 		WHERE is_registered = FALSE
 		  AND (gitea_username ILIKE $1 OR first_name || ' ' || last_name ILIKE $1)
@@ -1472,23 +1484,19 @@ func SearchUsersHandler(w http.ResponseWriter, r *http.Request) {
 	if err2 == nil {
 		defer rows2.Close()
 		for rows2.Next() {
-			var username, fullName string
-			var floor, whatsapp sql.NullString
+			var username, fullName, floor, whatsapp string
 			if rows2.Scan(&username, &fullName, &floor, &whatsapp) == nil {
-				result := searchResult{
+				results = append(results, searchResult{
 					Username: username,
 					FullName: fullName,
 					Status:   "unregistered",
-				}
-				if floor.Valid {
-					result.Floor = floor.String
-				}
-				if whatsapp.Valid {
-					result.WhatsApp = whatsapp.String
-				}
-				results = append(results, result)
+					Floor:    floor,
+					WhatsApp: whatsapp,
+				})
 			}
 		}
+	} else {
+		log.Printf("❌ Search unregistered users error: %v", err2)
 	}
 
 	if results == nil {
@@ -1500,7 +1508,6 @@ func SearchUsersHandler(w http.ResponseWriter, r *http.Request) {
 
 // ═══════════════════════════════════════════════════════════════
 // ADMIN — GET ALL USERS
-// FIX: online field now populated from connections map, not DB.
 // ═══════════════════════════════════════════════════════════════
 
 func GetAllUsersHandler(w http.ResponseWriter, r *http.Request) {
@@ -1523,7 +1530,6 @@ func GetAllUsersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	// Snapshot the online set once under read lock
 	mu.RLock()
 	onlineSet := make(map[string]bool, len(connections))
 	for u := range connections {
@@ -1538,7 +1544,7 @@ func GetAllUsersHandler(w http.ResponseWriter, r *http.Request) {
 		FullName  string     `json:"full_name"`
 		CreatedAt time.Time  `json:"created_at"`
 		LastLogin *time.Time `json:"last_login"`
-		Online    bool       `json:"online"` // ← populated from live connections map
+		Online    bool       `json:"online"`
 	}
 
 	var users []userRow
@@ -1653,7 +1659,7 @@ func UpdateFeedbackHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ADMIN — SYSTEM STATS (backend-enforced admin-only)
+// ADMIN — SYSTEM STATS
 // ═══════════════════════════════════════════════════════════════
 
 func SystemStatsHandler(w http.ResponseWriter, r *http.Request) {
@@ -1686,16 +1692,14 @@ func SystemStatsHandler(w http.ResponseWriter, r *http.Request) {
 
 // ═══════════════════════════════════════════════════════════════
 // IMPORT USERS
-// Enhanced to store ALL users in imported_users table.
-// Auto-syncs is_registered when user signs up.
 // Excel column layout (0-indexed):
 //   0 = First_name
 //   1 = Last_name
-//   2 = Gitea_Username → stored as username
+//   2 = Gitea_Username
 //   3 = Nickname → IGNORED
 //   4 = Floor
 //   5 = WhatsApp
-//   6 = Email → used as account email if present & valid
+//   6 = Email
 //   7 = Notes → IGNORED
 // ═══════════════════════════════════════════════════════════════
 
@@ -1756,10 +1760,9 @@ func ImportUsersHandler(w http.ResponseWriter, r *http.Request) {
 
 	for i, row := range rows {
 		if i == 0 {
-			continue // Skip header row
+			continue
 		}
 
-		// Safe cell reader — returns "" for missing columns
 		cell := func(idx int) string {
 			if idx < len(row) {
 				return strings.TrimSpace(row[idx])
@@ -1770,20 +1773,18 @@ func ImportUsersHandler(w http.ResponseWriter, r *http.Request) {
 		firstName := cell(0)
 		lastName := cell(1)
 		username := cell(2)
-		// cell(3) = Nickname — explicitly ignored
+		// cell(3) = Nickname — ignored
 		floor := cell(4)
 		whatsapp := cell(5)
 		email := cell(6)
-		// cell(7) = Notes — explicitly ignored
+		// cell(7) = Notes — ignored
 
 		fullName := strings.TrimSpace(firstName + " " + lastName)
 
-		// Skip completely empty rows
 		if firstName == "" && lastName == "" && username == "" {
 			continue
 		}
 
-		// No Gitea username → unregistered, collect for WhatsApp panel
 		if username == "" {
 			if fullName != "" {
 				unregistered = append(unregistered, unregisteredUser{
@@ -1796,29 +1797,35 @@ func ImportUsersHandler(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		// Store in imported_users table (upsert)
+		// Upsert into imported_users
 		dbMu.Lock()
 		db.Exec(`
 			INSERT INTO imported_users (first_name, last_name, gitea_username, floor, whatsapp, email)
 			VALUES ($1, $2, $3, $4, $5, $6)
 			ON CONFLICT (gitea_username) DO UPDATE SET
-				first_name = EXCLUDED.first_name,
-				last_name = EXCLUDED.last_name,
-				floor = EXCLUDED.floor,
-				whatsapp = EXCLUDED.whatsapp,
-				email = EXCLUDED.email,
+				first_name  = EXCLUDED.first_name,
+				last_name   = EXCLUDED.last_name,
+				floor       = EXCLUDED.floor,
+				whatsapp    = EXCLUDED.whatsapp,
+				email       = EXCLUDED.email,
 				imported_at = NOW()
 		`, firstName, lastName, username, floor, whatsapp, email)
 		dbMu.Unlock()
 
 		// Check if already registered
 		var userID int
-		var exists bool
 		err := db.QueryRow("SELECT id FROM users WHERE username=$1", username).Scan(&userID)
-		exists = (err == nil)
+		exists := (err == nil)
 
 		if exists {
-			// Mark as registered in imported_users
+			// Backfill floor + whatsapp into the registered user record
+			db.Exec(`
+				UPDATE users SET
+					floor    = COALESCE(NULLIF(floor, ''),    $1),
+					whatsapp = COALESCE(NULLIF(whatsapp, ''), $2)
+				WHERE username = $3
+			`, floor, whatsapp, username)
+
 			db.Exec(`
 				UPDATE imported_users
 				SET is_registered = TRUE, registered_user_id = $1
@@ -1828,20 +1835,17 @@ func ImportUsersHandler(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		// Build valid email
 		if email == "" || !strings.Contains(email, "@") {
 			email = fmt.Sprintf("%s@local.system", strings.ToLower(username))
 		}
 		email = strings.ToLower(email)
 
-		// Avoid email collision from a different user
 		var emailTaken bool
 		db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE email=$1)", email).Scan(&emailTaken)
 		if emailTaken {
 			email = fmt.Sprintf("%s@local.system", strings.ToLower(username))
 		}
 
-		// Create user account with bcrypt
 		passwordHash, err := hashPasswordBcrypt("changeme123")
 		if err != nil {
 			log.Printf("❌ Bcrypt error for %s: %v", username, err)
@@ -1852,8 +1856,9 @@ func ImportUsersHandler(w http.ResponseWriter, r *http.Request) {
 		dbMu.Lock()
 		var newUserID int
 		insertErr := db.QueryRow(
-			"INSERT INTO users(username,email,full_name,password_hash) VALUES($1,$2,$3,$4) RETURNING id",
-			username, email, fullName, passwordHash,
+			// FIX: Also store floor + whatsapp in users table on import
+			"INSERT INTO users(username,email,full_name,password_hash,floor,whatsapp) VALUES($1,$2,$3,$4,$5,$6) RETURNING id",
+			username, email, fullName, passwordHash, floor, whatsapp,
 		).Scan(&newUserID)
 		dbMu.Unlock()
 
@@ -1863,7 +1868,6 @@ func ImportUsersHandler(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		// Mark as registered in imported_users
 		db.Exec(`
 			UPDATE imported_users
 			SET is_registered = TRUE, registered_user_id = $1

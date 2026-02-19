@@ -1,4 +1,4 @@
-    // ── config ────────────────────────────────────────────────────
+// ── config ────────────────────────────────────────────────────
     const API = location.hostname === 'localhost' ? 'http://localhost:8080' : 'https://audit-notification.onrender.com';
     const WSS = location.hostname === 'localhost' ? 'ws://localhost:8080' : 'wss://audit-notification.onrender.com';
 
@@ -15,96 +15,65 @@
     var ws = null, me = null, manualDisc = false, retries = 0;
     var notifs = [], unread = 0, online = [], auditCount = 0;
     var userList = [], onlineTimer = null, srchTimer = null;
-    var isBulkOperation = false; // NEW: Flag to skip offline checks during bulk imports
+    var isBulkOperation = false;
 
-    // NOTIFICATION SYNC (NEW - FIX FOR ISSUE #1)
-    // Intelligent polling with Page Visibility API
-    // ══════════════════════════════════════════════════════════════
+    // NOTIFICATION SYNC
     var syncTimer = null;
     var lastSync = 0;
-    var syncInterval = 30000; // 30 seconds
+    var syncInterval = 30000;
     var isTabVisible = true;
 
-    // Page Visibility API integration
     document.addEventListener('visibilitychange', function () {
       isTabVisible = !document.hidden;
-
       if (isTabVisible && me) {
-        // Tab became visible — sync immediately
         addLog('Tab visible — syncing notifications', 'info');
         syncNotifications();
       }
-
-      // Adjust sync frequency based on visibility
       if (isTabVisible) {
         startNotificationSync();
       } else {
-        // Tab hidden — reduce frequency to save resources
         clearInterval(syncTimer);
       }
     });
 
     function startNotificationSync() {
       if (!me) return;
-
       clearInterval(syncTimer);
-
-      // Immediate sync on start
       syncNotifications();
-
-      // Periodic sync while tab is visible
       syncTimer = setInterval(function () {
-        if (isTabVisible && me) {
-          syncNotifications();
-        }
+        if (isTabVisible && me) syncNotifications();
       }, syncInterval);
     }
 
     async function syncNotifications() {
       if (!me) return;
-
       var now = Date.now();
-      // Throttle: don't sync more than once every 5 seconds
       if (now - lastSync < 5000) return;
       lastSync = now;
-
       try {
         var r = await fetch(API + '/sync-notifications?user=' + me.username, {
           cache: 'no-cache',
           headers: { 'Cache-Control': 'no-cache' }
         });
-
         if (!r.ok) return;
-
         var data = await r.json();
         var notifications = data.notifications || [];
-
         if (notifications.length > 0) {
           addLog('Synced ' + notifications.length + ' missed notifications', 'success');
-
           notifications.forEach(function (n) {
             playSound(n.replyTo ? 'reply' : 'audit');
             var title = n.replyTo ? ('Reply from @' + n.sender) : ('Audit from @' + n.sender);
             toast(title, n.message, n.replyTo ? 'success' : 'audit', 8000);
             deskNotif(n.sender, n.message);
-
             addNotif({
-              id: n.id,
-              message: n.message,
-              sender: n.sender,
-              time: new Date(n.timestamp),
-              read: false,
-              canReply: !n.replyTo,
-              isReply: !!n.replyTo
+              id: n.id, message: n.message, sender: n.sender,
+              time: new Date(n.timestamp), read: false,
+              canReply: !n.replyTo, isReply: !!n.replyTo
             });
           });
-
-          // Mark them as delivered on backend
           markNotificationsDelivered(notifications.map(function (n) { return n.id; }));
         }
-      } catch (err) {
-        console.error('Sync error:', err);
-      }
+      } catch (err) { console.error('Sync error:', err); }
     }
 
     async function markNotificationsDelivered(ids) {
@@ -124,8 +93,7 @@
       inp.type = inp.type === 'password' ? 'text' : 'password';
     }
 
-
-    // ── PASSCODE RESET FLOW (NEW) ─────────────────────────────────
+    // ── PASSCODE RESET FLOW ───────────────────────────────────────
     function showPasscodeReset() {
       openModal(
         '<svg class="ic" width="18" height="18"><use href="#ic-key"/></svg> Reset via Recovery Passcode',
@@ -140,7 +108,6 @@
         '<button class="bs bsm" onclick="verifyPasscode()"><svg class="ic" width="13" height="13"><use href="#ic-check"/></svg> Verify Passcode</button>' +
         '</div>'
       );
-      // Add input validation for 6 digits only
       document.getElementById('pcCode').addEventListener('input', function (e) {
         e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
       });
@@ -149,30 +116,20 @@
     async function verifyPasscode() {
       var username = document.getElementById('pcUsername').value.trim();
       var passcode = document.getElementById('pcCode').value.trim();
-
       if (!username || !passcode) return toast('Error', 'Please enter username and passcode', 'error');
       if (!/^\d{6}$/.test(passcode)) return toast('Error', 'Passcode must be exactly 6 digits', 'error');
-
       try {
         var r = await fetch(API + '/verify-passcode', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: username, passcode: passcode })
         });
-
         if (r.status === 429) return toast('Rate Limited', 'Too many attempts. Please try again in 1 hour.', 'error', 8000);
-        if (!r.ok) {
-          var msg = await r.text();
-          return toast('Error', msg, 'error');
-        }
-
+        if (!r.ok) { var msg = await r.text(); return toast('Error', msg, 'error'); }
         var data = await r.json();
         closeModal();
         toast('Verified', 'Passcode accepted! Set your new password.', 'success', 3000);
         setTimeout(function () { showNewPasswordModal(data.token); }, 800);
-      } catch (err) {
-        toast('Error', 'Verification failed: ' + err.message, 'error');
-      }
+      } catch (err) { toast('Error', 'Verification failed: ' + err.message, 'error'); }
     }
 
     function showNewPasswordModal(token) {
@@ -191,28 +148,18 @@
     async function submitPasscodeReset(token) {
       var pwd = document.getElementById('newPwdPC').value;
       var conf = document.getElementById('confirmPwdPC').value;
-
       if (!pwd || pwd.length < 6) return toast('Error', 'Password must be at least 6 characters', 'error');
       if (pwd !== conf) return toast('Error', 'Passwords do not match', 'error');
-
       try {
         var r = await fetch(API + '/reset-password-passcode', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: token, password: pwd })
         });
-
-        if (!r.ok) {
-          var msg = await r.text();
-          return toast('Error', msg, 'error');
-        }
-
+        if (!r.ok) { var msg = await r.text(); return toast('Error', msg, 'error'); }
         closeModal();
         toast('Password Updated', 'You can now log in with your new password', 'success', 6000);
         swTab('login', document.querySelectorAll('.tab')[0]);
-      } catch (err) {
-        toast('Error', 'Reset failed: ' + err.message, 'error');
-      }
+      } catch (err) { toast('Error', 'Reset failed: ' + err.message, 'error'); }
     }
 
     // ── generic modal ─────────────────────────────────────────────
@@ -223,14 +170,9 @@
       m.setAttribute('role', 'dialog');
       m.setAttribute('aria-modal', 'true');
       m.setAttribute('aria-labelledby', 'modalTitle');
-
       m.innerHTML = '<div class="modal" role="document"><div class="mtitle" id="modalTitle">' + title + '</div>' + body + '</div>';
       document.body.appendChild(m);
-
-      // Dismissible via outside click
       m.addEventListener('click', function (e) { if (e.target === m) closeModal(); });
-
-      // Focus trap - focus first focusable element
       setTimeout(function () {
         var focusable = m.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
         if (focusable.length) focusable[0].focus();
@@ -246,19 +188,17 @@
       document.getElementById('regTab').classList.toggle('hidden', t !== 'reg');
     }
 
-    // ── register (UPDATED) ────────────────────────────────────────
+    // ── register ──────────────────────────────────────────────────
     async function register() {
       var n = document.getElementById('rn').value.trim();
       var u = document.getElementById('ru').value.trim();
       var e = document.getElementById('re').value.trim();
       var p = document.getElementById('rp').value;
-      var pc = document.getElementById('rpc').value.trim(); // NEW: recovery passcode
+      var pc = document.getElementById('rpc').value.trim();
 
       if (!n || !u || !e || !p) return toast('Error', 'Name, username, email, and password are required', 'error');
       if (p.length < 6) return toast('Error', 'Password must be at least 6 characters', 'error');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return toast('Error', 'Please enter a valid email address', 'error');
-
-      // Validate passcode if provided
       if (pc && !/^\d{6}$/.test(pc)) return toast('Error', 'Recovery passcode must be exactly 6 digits (or leave empty)', 'error');
 
       try {
@@ -339,10 +279,7 @@
         retries = 0; manualDisc = false;
         reqPerm();
         fetchOnline();
-
-        // Start notification sync as safety net
         startNotificationSync();
-
         clearInterval(onlineTimer);
         onlineTimer = setInterval(fetchOnline, 5000);
       };
@@ -354,7 +291,6 @@
             canReply: d.canReply !== false, isReply: d.isReply || false
           });
           addLog(d.sender + ': ' + d.message, 'success');
-
           if (!d.queued) {
             playSound(d.isReply ? 'reply' : 'audit');
             var title = d.isReply ? ('Reply from @' + d.sender) : ('Audit from @' + d.sender);
@@ -370,7 +306,7 @@
       ws.onclose = function () {
         setConn(false);
         clearInterval(onlineTimer);
-        clearInterval(syncTimer); // ADD THIS LINE
+        clearInterval(syncTimer);
         online = []; renderChips();
         if (!manualDisc) {
           var delay = Math.min(1000 * Math.pow(2, retries), 30000);
@@ -401,8 +337,6 @@
     }
 
     // ── online users ──────────────────────────────────────────────
-    // FIX: Send X-Admin-User header so backend returns total count only to admin.
-    // The backend connections map is the authoritative source — always accurate.
     async function fetchOnline() {
       try {
         var hdrs = { 'Cache-Control': 'no-cache' };
@@ -412,27 +346,18 @@
         var d = await r.json();
         online = d.online || [];
         document.getElementById('sOn').textContent = online.length;
-        // Only show total registered count when backend returns it (admin only)
-        if (d.total !== undefined) {
-          document.getElementById('sTot').textContent = d.total;
-        }
+        if (d.total !== undefined) document.getElementById('sTot').textContent = d.total;
         renderChips();
-        // Refresh user table online badges without a full reload
         if (me && me.username === 'admin') {
           document.getElementById('uOn').textContent = online.length;
-          // Update inline status badges using backend's online array
           refreshUserOnlineStatus();
         }
       } catch (err) { }
     }
 
-    // Refreshes the Online/Offline badges in the user table without re-fetching the full list.
-    // Uses the online[] array returned by the backend /online endpoint.
     function refreshUserOnlineStatus() {
       if (!userList || !userList.length) return;
-      // Update each user's online flag from the fresh online array
       userList.forEach(function (u) { u.online = online.indexOf(u.username) > -1; });
-      // Re-render just the status cells without rebuilding the whole table
       var rows = document.querySelectorAll('#uBody tr');
       rows.forEach(function (row) {
         var usernameCell = row.querySelector('td:first-child [style*="font-mn"]');
@@ -458,10 +383,7 @@
     }
 
     // ── notifications ─────────────────────────────────────────────
-    function addNotif(n) {
-      notifs.unshift(n); unread++;
-      renderBadge(); renderList(); saveNotifs();
-    }
+    function addNotif(n) { notifs.unshift(n); unread++; renderBadge(); renderList(); saveNotifs(); }
     function renderBadge() {
       var b = document.getElementById('nbadge');
       if (unread > 0) { b.textContent = unread > 99 ? '99+' : unread; b.classList.remove('hidden'); }
@@ -546,23 +468,16 @@
       } catch (err) { toast('Error', err.message, 'error'); }
     }
 
-    // ── search users (UPDATED to show registered/unregistered) ───
-    // SEARCH DROPDOWN (FIXED WITH EVENT DELEGATION - ISSUE #3)
-    // ══════════════════════════════════════════════════════════════
+    // ── search users ──────────────────────────────────────────────
     function srchUsers(q) {
       clearTimeout(srchTimer);
       var drop = document.getElementById('sdrop');
-
-      if (!q || q.length < 2) {
-        drop.classList.add('hidden');
-        return;
-      }
+      if (!q || q.length < 2) { drop.classList.add('hidden'); return; }
 
       srchTimer = setTimeout(async function () {
         try {
           var r = await fetch(API + '/search?q=' + encodeURIComponent(q));
           if (!r.ok) return;
-
           var users = await r.json();
 
           if (!users.length) {
@@ -578,7 +493,6 @@
                 '<div style="font-size:.78rem;color:var(--t2);font-family:var(--font-mn)">@' + esc(u.username) + '</div>' +
                 '</div>';
             } else {
-              // Unregistered user
               var dataFloor = u.floor ? ' data-floor="' + esc(u.floor) + '"' : '';
               var dataPhone = u.whatsapp ? ' data-phone="' + esc(u.whatsapp) + '"' : '';
               return '<div class="sitem" data-username="' + esc(u.username) + '" data-status="unregistered"' + dataFloor + dataPhone + ' style="border-left:3px solid var(--amber)">' +
@@ -594,8 +508,6 @@
 
           drop.classList.remove('hidden');
 
-          // CRITICAL FIX: Event delegation instead of inline onclick
-          // This prevents z-index and pointer-events conflicts
           drop.querySelectorAll('.sitem').forEach(function (item) {
             item.addEventListener('click', function (e) {
               e.stopPropagation();
@@ -605,21 +517,13 @@
               if (status === 'registered') {
                 pickUser(username);
               } else {
-                // Show offline/unregistered modal
-                var fullName = item.textContent.match(/@(\S+)/)?.[0].replace('@', '') || username;
-                var floor = item.getAttribute('data-floor') || '';
-                var phone = item.getAttribute('data-phone') || '';
-
-                // Find full user info
                 var userInfo = users.find(function (u) { return u.username === username; });
                 if (userInfo) showOfflineUserModal(username, userInfo);
               }
             });
           });
 
-        } catch (err) {
-          console.error('Search error:', err);
-        }
+        } catch (err) { console.error('Search error:', err); }
       }, 300);
     }
 
@@ -629,155 +533,147 @@
       document.getElementById('aDetail').focus();
     }
 
-      // OFFLINE USER MODAL (REFINED - MATCHES PASSCODE MODAL STYLING)
-      // Triggered only for individual audit sends to offline users.
-      // Bypassed during bulk operations (Excel imports).
-      // ══════════════════════════════════════════════════════════════
+    // ── OFFLINE USER MODAL ────────────────────────────────────────
+    // FIX: Completely rewritten to handle missing/null/undefined
+    // floor and whatsapp data gracefully. No more "undefined" text.
+    // All data paths are sanitised before rendering HTML.
+    // ══════════════════════════════════════════════════════════════
+    function showOfflineUserModal(username, userInfo, onConfirm) {
+      if (!userInfo) {
+        toast('Error', 'User information not available', 'error');
+        return;
+      }
 
-      function showOfflineUserModal(username, userInfo, onConfirm) {
-        if (!userInfo) {
-          toast('Error', 'User information not available', 'error');
-          return;
-        }
+      // ── Sanitise all fields — never allow undefined/null into DOM ──
+      var name     = userInfo.fullName || userInfo.full_name || username || 'Unknown';
+      var floor    = (userInfo.floor && userInfo.floor.trim()) ? userInfo.floor.trim() : '';
+      var rawPhone = userInfo.whatsapp || userInfo.phone || '';
+      rawPhone     = (typeof rawPhone === 'string') ? rawPhone.trim() : '';
 
-        var name = userInfo.fullName || userInfo.full_name || username;
-        var floor = userInfo.floor || 'Floor unknown';
-        var phone = userInfo.whatsapp || userInfo.phone || '';
+      // Strip to digits only for wa.me URL
+      var cleanPhone = rawPhone.replace(/\D/g, '');
 
-        // Clean phone number (digits only)
-        var cleanPhone = phone ? phone.replace(/\D/g, '') : '';
+      // Build WhatsApp message + URL only when a phone number exists
+      var waUrl = '';
+      if (cleanPhone) {
+        var senderName = (me && me.full_name) ? me.full_name : (me ? me.username : 'Nexus Audit');
+        var locationInfo = floor ? ' (' + floor + ')' : '';
+        var waText =
+          'Hi ' + name + ',\n\n' +
+          'This is ' + senderName + ' from Nexus Audit.\n\n' +
+          'You have been requested for an audit. The request has been queued and will be delivered when you come online.\n\n' +
+          'Please log in to the Nexus Audit platform to view your notification:\n' +
+          'https://audit-notification.onrender.com\n\n' +
+          'If you need assistance, please confirm receipt of this message.\n\nThank you.';
+        waUrl = 'https://wa.me/' + '+234' + cleanPhone +  '?text=' + encodeURIComponent(waText);
+      }
 
-        // Build professional WhatsApp message
-        var waUrl = '';
-        var waText = '';
-        if (cleanPhone) {
-          var senderName = me && me.full_name ? me.full_name : (me ? me.username : 'Nexus Audit');
-          var locationInfo = floor !== 'Floor unknown' ? ' (' + floor + ')' : '';
-
-          waText = 'Hi ' + name + locationInfo + ',\n\n' +
-            'This is ' + senderName + ' from Nexus Audit.\n\n' +
-            'You have been requested for an audit. The request has been queued and will be delivered when you come online.\n\n' +
-            'Please log in to the Nexus Audit platform to view your notification:\n' +
-            'https://audit-notification.onrender.com\n\n' +
-            'If you need assistance, please confirm receipt of this message.\n\n' +
-            'Thank you.';
-
-          waUrl = 'https://wa.me/' + cleanPhone + '?text=' + encodeURIComponent(waText);
-        }
-
-        // Build modal HTML (matches passcode modal styling)
-        var modalHTML =
-          '<div style="text-align:center;padding:4px 0">' +
-          // Info box (matches passcode modal's cyan info box)
-          '<div style="background:rgba(245,158,58,.08);border:1px solid rgba(245,158,58,.3);border-radius:10px;padding:14px 16px;margin-bottom:20px;text-align:left">' +
-          '<div style="font-size:.875rem;color:var(--t1);line-height:1.6;margin-bottom:12px">' +
-          '<svg class="ic" width="14" height="14" style="color:var(--amber);vertical-align:middle;margin-right:6px"><use href="#ic-info"/></svg>' +
-          'This user is currently <strong style="color:var(--amber)">offline</strong>. The audit will be queued and delivered when they connect.' +
-          '</div>' +
-          '<div style="font-size:.8rem;color:var(--t2);line-height:1.5">' +
-          'Alternatively, contact them via WhatsApp or in-person using the details below.' +
-          '</div>' +
-          '</div>' +
-
-          // User details card
-          '<div style="background:var(--c2);border:1px solid var(--br0);border-radius:10px;padding:14px 16px;margin-bottom:20px">' +
-          '<div style="font-weight:700;font-size:1rem;color:var(--t0);margin-bottom:10px;font-family:var(--font-hd)">' + esc(name) + '</div>' +
-          '<div style="display:flex;flex-direction:column;gap:8px">' +
-          // Floor
-          '<div style="display:flex;align-items:center;gap:8px">' +
+      // ── Floor row ─────────────────────────────────────────────
+      var floorRow = floor
+        ? '<div style="display:flex;align-items:center;gap:8px">' +
           '<svg class="ic" width="14" height="14" style="color:var(--t2)"><use href="#ic-building"/></svg>' +
           '<span style="font-size:.875rem;color:var(--t1)">' + esc(floor) + '</span>' +
-          '</div>' +
-          // Phone
-          (phone ?
-            '<div style="display:flex;align-items:center;gap:8px">' +
-            '<svg class="ic" width="14" height="14" style="color:var(--green)"><use href="#ic-phone"/></svg>' +
-            '<span style="font-size:.875rem;color:var(--t1);font-family:var(--font-mn)">' + esc(phone) + '</span>' +
-            '</div>' :
-            '<div style="display:flex;align-items:center;gap:8px">' +
-            '<svg class="ic" width="14" height="14" style="color:var(--red)"><use href="#ic-alert"/></svg>' +
-            '<span style="font-size:.8rem;color:var(--t2);font-style:italic">No phone on record</span>' +
-            '</div>'
-          ) +
-          '</div>' +
-          '</div>' +
-
-          // WhatsApp button (if phone available)
-          (cleanPhone ?
-            '<a href="' + waUrl + '" target="_blank" rel="noopener noreferrer" class="wa-btn" style="margin-bottom:16px;display:inline-flex">' +
-            '<svg class="ic" width="15" height="15"><use href="#ic-whatsapp"/></svg> Send WhatsApp Invite' +
-            '</a>' :
-            '<div style="background:rgba(239,69,101,.1);border:1px solid rgba(239,69,101,.3);padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:.85rem;color:var(--red)">' +
-            '<svg class="ic" width="14" height="14" style="vertical-align:middle;margin-right:6px"><use href="#ic-alert"/></svg>' +
-            'WhatsApp not available - no phone number on record' +
-            '</div>'
-          ) +
-
-          // Action buttons (matches passcode modal layout)
-          '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">' +
-          '<button class="bg bsm" onclick="closeModal()" style="flex:1">' +
-          '<svg class="ic" width="13" height="13"><use href="#ic-x"/></svg> Cancel' +
-          '</button>' +
-          '<button class="bs bsm" onclick="confirmOfflineAudit()" style="flex:1">' +
-          '<svg class="ic" width="13" height="13"><use href="#ic-send"/></svg> Send Anyway' +
-          '</button>' +
-          '</div>' +
+          '</div>'
+        : '<div style="display:flex;align-items:center;gap:8px">' +
+          '<svg class="ic" width="14" height="14" style="color:var(--t3)"><use href="#ic-building"/></svg>' +
+          '<span style="font-size:.8rem;color:var(--t2);font-style:italic">Floor not specified</span>' +
           '</div>';
 
-        // Open modal with consistent title styling
-        openModal(
-          '<svg class="ic" width="18" height="18" style="color:var(--amber)"><use href="#ic-wifi-off"/></svg> User Offline - Send Audit Request?',
-          modalHTML
-        );
+      // ── Phone row ─────────────────────────────────────────────
+      var phoneRow = rawPhone
+        ? '<div style="display:flex;align-items:center;gap:8px">' +
+          '<svg class="ic" width="14" height="14" style="color:var(--green)"><use href="#ic-phone"/></svg>' +
+          '<span style="font-size:.875rem;color:var(--t1);font-family:var(--font-mn)">' + esc(rawPhone) + '</span>' +
+          '</div>'
+        : '<div style="display:flex;align-items:center;gap:8px">' +
+          '<svg class="ic" width="14" height="14" style="color:var(--t3)"><use href="#ic-alert"/></svg>' +
+          '<span style="font-size:.8rem;color:var(--t2);font-style:italic">No phone number on record</span>' +
+          '</div>';
 
-        // Store callback for "Send Anyway" button
-        window.confirmOfflineAudit = function () {
-          closeModal();
-          if (onConfirm) onConfirm();
-        };
+      // ── WhatsApp CTA or no-phone notice ───────────────────────
+      var whatsappSection = waUrl
+        ? '<a href="' + waUrl + '" target="_blank" rel="noopener noreferrer" class="wa-btn" style="margin-bottom:16px;display:inline-flex">' +
+          '<svg class="ic" width="15" height="15"><use href="#ic-whatsapp"/></svg> Send WhatsApp Invite' +
+          '</a>'
+        : '<div style="background:rgba(239,69,101,.1);border:1px solid rgba(239,69,101,.3);padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:.85rem;color:var(--red)">' +
+          '<svg class="ic" width="14" height="14" style="vertical-align:middle;margin-right:6px"><use href="#ic-alert"/></svg>' +
+          'WhatsApp not available — no phone number on record' +
+          '</div>';
 
-        // Make modal dismissible with Escape key
-        var escHandler = function (e) {
-          if (e.key === 'Escape') {
-            closeModal();
-            document.removeEventListener('keydown', escHandler);
-          }
-        };
-        document.addEventListener('keydown', escHandler);
+      // ── Assemble modal ────────────────────────────────────────
+      var modalHTML =
+        '<div style="text-align:center;padding:4px 0">' +
 
-        // Auto-remove escape handler when modal closes
-        var observer = new MutationObserver(function (mutations) {
-          if (!document.getElementById('genModal')) {
-            document.removeEventListener('keydown', escHandler);
-            observer.disconnect();
-          }
-        });
-        observer.observe(document.body, { childList: true });
-      }
-      // EDGE CASE HANDLERS
-      // ══════════════════════════════════════════════════════════════
+        // Info box
+        '<div style="background:rgba(245,158,58,.08);border:1px solid rgba(245,158,58,.3);border-radius:10px;padding:14px 16px;margin-bottom:20px;text-align:left">' +
+        '<div style="font-size:.875rem;color:var(--t1);line-height:1.6;margin-bottom:12px">' +
+        '<svg class="ic" width="14" height="14" style="color:var(--amber);vertical-align:middle;margin-right:6px"><use href="#ic-info"/></svg>' +
+        'This user is currently <strong style="color:var(--amber)">offline</strong>. The audit will be queued and delivered when they connect.' +
+        '</div>' +
+        '<div style="font-size:.8rem;color:var(--t2);line-height:1.5">Alternatively, contact them via WhatsApp or in-person using the details below.</div>' +
+        '</div>' +
 
-      // Detect if user comes online while modal is open
-      function handleUserReconnection(username) {
-        var modal = document.getElementById('genModal');
-        if (modal && modal.querySelector('.mtitle')?.textContent.includes('User Offline')) {
-          // User came online - update modal
-          closeModal();
-          toast('User Online', username + ' just connected! Sending audit now...', 'success', 3000);
-          // Auto-send if confirmation callback exists
-          if (window.confirmOfflineAudit) {
-            window.confirmOfflineAudit();
-          }
+        // User details card
+        '<div style="background:var(--c2);border:1px solid var(--br0);border-radius:10px;padding:14px 16px;margin-bottom:20px">' +
+        '<div style="font-weight:700;font-size:1rem;color:var(--t0);margin-bottom:10px;font-family:var(--font-hd)">' + esc(name) + '</div>' +
+        '<div style="display:flex;flex-direction:column;gap:8px">' +
+        floorRow +
+        phoneRow +
+        '</div>' +
+        '</div>' +
+
+        // WhatsApp section
+        whatsappSection +
+
+        // Action buttons
+        '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">' +
+        '<button class="bg bsm" onclick="closeModal()" style="flex:1">' +
+        '<svg class="ic" width="13" height="13"><use href="#ic-x"/></svg> Cancel' +
+        '</button>' +
+        '<button class="bs bsm" onclick="confirmOfflineAudit()" style="flex:1">' +
+        '<svg class="ic" width="13" height="13"><use href="#ic-send"/></svg> Send Anyway' +
+        '</button>' +
+        '</div>' +
+        '</div>';
+
+      openModal(
+        '<svg class="ic" width="18" height="18" style="color:var(--amber)"><use href="#ic-wifi-off"/></svg> User Offline — Send Audit Request?',
+        modalHTML
+      );
+
+      // Store callback for "Send Anyway"
+      window.confirmOfflineAudit = function () {
+        closeModal();
+        if (onConfirm) onConfirm();
+      };
+
+      // Escape key handler
+      var escHandler = function (e) {
+        if (e.key === 'Escape') { closeModal(); document.removeEventListener('keydown', escHandler); }
+      };
+      document.addEventListener('keydown', escHandler);
+
+      // Auto-remove escape handler when modal is destroyed
+      var observer = new MutationObserver(function () {
+        if (!document.getElementById('genModal')) {
+          document.removeEventListener('keydown', escHandler);
+          observer.disconnect();
         }
+      });
+      observer.observe(document.body, { childList: true });
+    }
+
+    // Detect user reconnection while modal is open
+    function handleUserReconnection(username) {
+      var modal = document.getElementById('genModal');
+      if (modal && modal.querySelector('.mtitle') && modal.querySelector('.mtitle').textContent.includes('User Offline')) {
+        closeModal();
+        toast('User Online', username + ' just connected! Sending audit now...', 'success', 3000);
+        if (window.confirmOfflineAudit) window.confirmOfflineAudit();
       }
+    }
 
-      // Call this from fetchOnline() when online list changes
-      // Add to fetchOnline() function after `renderChips();`:
-      // online.forEach(function(u){ handleUserReconnection(u); });
-    
-
-
-    // ── send audit (UPDATED for unregistered user detection) ─────
+    // ── send audit ────────────────────────────────────────────────
     async function sendAudit() {
       if (!ws || ws.readyState !== WebSocket.OPEN) return toast('Error', 'Please connect first', 'error');
       var target = document.getElementById('tUser').value.trim();
@@ -785,45 +681,31 @@
       if (!target || !detail) return toast('Error', 'All fields are required', 'error');
 
       // Skip offline check during bulk operations
-      if (isBulkOperation) {
-        proceedWithAudit(target, detail);
-        return;
-      }
+      if (isBulkOperation) { proceedWithAudit(target, detail); return; }
 
-      // Check if user is online
       var isOnline = online.indexOf(target) > -1;
 
       if (!isOnline) {
-        // User is offline — fetch their info and show modal
         try {
           var searchR = await fetch(API + '/search?q=' + encodeURIComponent(target));
           if (searchR.ok) {
             var users = await searchR.json();
+            // FIX: exact match on username (search can return partial matches)
             var user = users.find(function (u) { return u.username === target; });
-
             if (user) {
-              // Show professional offline modal
-              showOfflineUserModal(target, user, function () {
-                proceedWithAudit(target, detail);
-              });
+              showOfflineUserModal(target, user, function () { proceedWithAudit(target, detail); });
               return;
             }
           }
-        } catch (e) {
-          console.error('User lookup error:', e);
-        }
+        } catch (e) { console.error('User lookup error:', e); }
 
-        // Fallback if search fails - use basic confirm
-        if (!confirm(target + ' is currently offline. Send audit anyway?')) {
-          return;
-        }
+        // Fallback if search fails
+        if (!confirm(target + ' is currently offline. Send audit anyway?')) return;
       }
 
-      // User is online or confirmed offline send - proceed
       proceedWithAudit(target, detail);
     }
 
-    // Extracted audit send logic for reuse
     async function proceedWithAudit(target, detail) {
       try {
         var r = await fetch(API + '/audit', {
@@ -833,14 +715,12 @@
 
         var d = await r.json();
 
-        // Handle unregistered user response from backend
         if (d.error === 'user_not_registered' && d.user_info) {
           closeModal();
           showOfflineUserModal(target, {
             fullName: d.user_info.name,
-            floor: d.user_info.floor,
-            whatsapp: d.user_info.phone,
-            status: 'unregistered'
+            floor: d.user_info.floor || '',
+            whatsapp: d.user_info.phone || '',
           }, function () {
             toast('Info', 'User must register first to receive audits', 'info', 5000);
           });
@@ -859,11 +739,11 @@
 
     // Show modal for unregistered user with WhatsApp option
     function showUnregisteredUserModal(info) {
-      var waBtn = info.whatsapp_url ?
-        '<a href="' + info.whatsapp_url + '" target="_blank" rel="noopener noreferrer" class="wa-btn" style="margin-top:16px">' +
-        '<svg class="ic" width="15" height="15"><use href="#ic-whatsapp"/></svg> Send WhatsApp Invite' +
-        '</a>' :
-        '<div style="color:var(--t2);font-size:.85rem;margin-top:12px;text-align:center">No phone number available</div>';
+      var waBtn = info.whatsapp_url
+        ? '<a href="' + info.whatsapp_url + '" target="_blank" rel="noopener noreferrer" class="wa-btn" style="margin-top:16px">' +
+          '<svg class="ic" width="15" height="15"><use href="#ic-whatsapp"/></svg> Send WhatsApp Invite' +
+          '</a>'
+        : '<div style="color:var(--t2);font-size:.85rem;margin-top:12px;text-align:center">No phone number available</div>';
 
       openModal(
         '<svg class="ic" width="18" height="18" style="color:var(--amber)"><use href="#ic-alert"/></svg> User Not Registered',
@@ -879,12 +759,8 @@
         '</div>' +
         '</div>' +
         waBtn +
-        '<p style="font-size:.8rem;color:var(--t2);margin-top:16px">' +
-        'They need to register with their Gitea username to receive audits.' +
-        '</p>' +
-        '<button class="bg bfull" onclick="closeModal()" style="margin-top:16px">' +
-        '<svg class="ic" width="14" height="14"><use href="#ic-x"/></svg> Close' +
-        '</button>' +
+        '<p style="font-size:.8rem;color:var(--t2);margin-top:16px">They need to register with their Gitea username to receive audits.</p>' +
+        '<button class="bg bfull" onclick="closeModal()" style="margin-top:16px"><svg class="ic" width="14" height="14"><use href="#ic-x"/></svg> Close</button>' +
         '</div>'
       );
     }
@@ -935,7 +811,7 @@
       var resultDiv = document.getElementById('importResults');
       if (!file) return;
 
-      isBulkOperation = true; // SET FLAG - Skip offline checks during import
+      isBulkOperation = true;
 
       var form = new FormData(); form.append('file', file);
       st.innerHTML = '<span style="color:var(--cyan);display:flex;align-items:center;gap:6px"><svg class="ic" width="14" height="14"><use href="#ic-refresh"/></svg> Processing Excel file…</span>';
@@ -946,16 +822,13 @@
         var d = await r.json();
         st.innerHTML = '<span style="color:var(--green);display:flex;align-items:center;gap:6px"><svg class="ic" width="14" height="14"><use href="#ic-check"/></svg> Imported ' + d.imported + ' users · Skipped ' + d.skipped + '</span>';
         toast('Import Complete', d.imported + ' users imported successfully', 'success');
-        // Render unregistered users if present
-        if (d.unregistered && d.unregistered.length > 0) {
-          renderUnregistered(d.unregistered, resultDiv);
-        }
+        if (d.unregistered && d.unregistered.length > 0) renderUnregistered(d.unregistered, resultDiv);
         loadUsers();
       } catch (err) {
         st.innerHTML = '<span style="color:var(--red);display:flex;align-items:center;gap:6px"><svg class="ic" width="14" height="14"><use href="#ic-x"/></svg> ' + err.message + '</span>';
         toast('Import Failed', err.message, 'error');
       } finally {
-        isBulkOperation = false; // RESET FLAG - Re-enable offline checks
+        isBulkOperation = false;
       }
       document.getElementById('xlFile').value = '';
     }
@@ -969,7 +842,6 @@
         '</div>' +
         '<div style="font-size:.78rem;color:var(--t2);margin-bottom:14px">These users can be reached via WhatsApp. Their floor location is shown for in-person contact.</div>' +
         users.map(function (u) {
-          // Build a professional, URL-encoded WhatsApp message
           var senderName = me && me.full_name ? me.full_name : (me ? me.username : 'Nexus Audit');
           var location = u.floor ? (' (' + u.floor + ')') : '';
           var waText = 'Hi ' + u.name + location + ',\n\n' +
@@ -978,25 +850,28 @@
             'https://audit-notification.onrender.com\n\n' +
             'Your registration details:\n- Gitea username is required to register\n\n' +
             'Please confirm receipt of this message.\n\nThank you.';
-          var phone = u.phone ? u.phone.replace(/\D/g, '') : '';
-          var waUrl = phone ? ('https://wa.me/' + '+234' + phone + '?text=' + encodeURIComponent(waText)) : '';
+          // FIX: guard phone — only strip digits if phone is a non-empty string
+          var rawPhone = (u.phone && typeof u.phone === 'string') ? u.phone.trim() : '';
+          var phone = rawPhone.replace(/\D/g, '');
+          var waUrl = phone ? ('https://wa.me/+234' + phone + '?text=' + encodeURIComponent(waText)) : '';
           return '<div class="unreg-card">' +
             '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">' +
             '<div>' +
             '<div class="unreg-name">' + esc(u.name) + '</div>' +
             '<div class="unreg-meta">' +
-            (u.floor ? '<span class="unreg-pill pill-floor"><svg class="ic" width="11" height="11"><use href="#ic-building"/></svg> ' + esc(u.floor) + '</span>' :
-              '<span class="unreg-pill" style="background:rgba(90,112,150,.1);border:1px solid var(--br0);color:var(--t2)"><svg class="ic" width="11" height="11"><use href="#ic-map-pin"/></svg> Floor unknown</span>') +
-            (phone ? '<span class="unreg-pill pill-phone"><svg class="ic" width="11" height="11"><use href="#ic-phone"/></svg> ' + esc(u.phone) + '</span>' : '') +
+            (u.floor
+              ? '<span class="unreg-pill pill-floor"><svg class="ic" width="11" height="11"><use href="#ic-building"/></svg> ' + esc(u.floor) + '</span>'
+              : '<span class="unreg-pill" style="background:rgba(90,112,150,.1);border:1px solid var(--br0);color:var(--t2)"><svg class="ic" width="11" height="11"><use href="#ic-map-pin"/></svg> Floor unknown</span>') +
+            (rawPhone ? '<span class="unreg-pill pill-phone"><svg class="ic" width="11" height="11"><use href="#ic-phone"/></svg> ' + esc(rawPhone) + '</span>' : '') +
             '</div>' +
             '</div>' +
-            (waUrl ?
-              '<a href="' + waUrl + '" target="_blank" rel="noopener noreferrer" class="wa-btn">' +
-              '<svg class="ic" width="15" height="15"><use href="#ic-whatsapp"/></svg> Send WhatsApp Invite' +
-              '</a>' :
-              '<span style="color:var(--t2);font-size:.8rem;display:inline-flex;align-items:center;gap:5px;padding:8px">' +
-              '<svg class="ic" width="13" height="13"><use href="#ic-alert"/></svg> No phone on record' +
-              '</span>') +
+            (waUrl
+              ? '<a href="' + waUrl + '" target="_blank" rel="noopener noreferrer" class="wa-btn">' +
+                '<svg class="ic" width="15" height="15"><use href="#ic-whatsapp"/></svg> Send WhatsApp Invite' +
+                '</a>'
+              : '<span style="color:var(--t2);font-size:.8rem;display:inline-flex;align-items:center;gap:5px;padding:8px">' +
+                '<svg class="ic" width="13" height="13"><use href="#ic-alert"/></svg> No phone on record' +
+                '</span>') +
             '</div>' +
             '</div>';
         }).join('') +
@@ -1027,7 +902,6 @@
         return;
       }
       b.innerHTML = list.map(function (u) {
-        // FIX: use backend's u.online (from connections map), fallback to local array
         var on = u.online === true || (u.online === undefined && online.indexOf(u.username) > -1);
         var ini = u.full_name ? (u.full_name.split(' ').map(function (x) { return x[0] || ''; }).join('').toUpperCase().slice(0, 2)) : '?';
         var joined = new Date(u.created_at).toLocaleDateString();
@@ -1058,7 +932,6 @@
       var res = userList.filter(function (u) {
         var mq = !query || u.username.toLowerCase().indexOf(query) > -1 ||
           u.full_name.toLowerCase().indexOf(query) > -1 || u.email.toLowerCase().indexOf(query) > -1;
-        // FIX: use u.online from backend; fallback to local online array
         var isOn = u.online === true || (u.online === undefined && online.indexOf(u.username) > -1);
         var ms = sf === 'all' || (sf === 'online' && isOn) || (sf === 'offline' && !isOn);
         return mq && ms;
@@ -1071,9 +944,9 @@
       userList.forEach(function (u) {
         var isOn = u.online === true || (u.online === undefined && online.indexOf(u.username) > -1);
         rows.push([u.username, u.full_name, u.email,
-        isOn ? 'Online' : 'Offline',
-        new Date(u.created_at).toLocaleDateString(),
-        u.last_login ? new Date(u.last_login).toLocaleString() : 'Never']);
+          isOn ? 'Online' : 'Offline',
+          new Date(u.created_at).toLocaleDateString(),
+          u.last_login ? new Date(u.last_login).toLocaleString() : 'Never']);
       });
       var csv = rows.map(function (r) { return r.map(function (c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(','); }).join('\n');
       var a = document.createElement('a');
@@ -1167,10 +1040,6 @@
     }
 
     // ── notifications permission ──────────────────────────────────
-    // FIX: Firefox requires Notification.requestPermission() to be called from
-    // a user gesture handler (click). We never auto-call it on load — only on
-    // explicit button click. Both promise-based (Chrome/Firefox) and legacy
-    // callback (Safari) APIs are handled.
     function checkPerm() {
       var b = document.getElementById('permBanner');
       if (!('Notification' in window)) { b.style.display = 'none'; return; }
@@ -1178,24 +1047,18 @@
     }
 
     function reqPerm() {
-      // Guard: Notification API not supported
       if (!('Notification' in window)) {
         toast('Not Supported', 'Your browser does not support desktop notifications', 'info', 4000);
         return;
       }
-      // Already granted — nothing to do
       if (Notification.permission === 'granted') {
         document.getElementById('permBanner').style.display = 'none';
         return;
       }
-      // Firefox 72+ requires a user-gesture; this function is only called from onclick — safe.
-      // requestPermission() returns a Promise in modern browsers; a string in legacy Safari.
       var result = Notification.requestPermission(function (p) {
-        // Legacy callback path (older Safari / some mobile browsers)
         if (p === 'granted') toast('Notifications Enabled', 'Desktop alerts are now active', 'success', 3000);
         document.getElementById('permBanner').style.display = 'none';
       });
-      // Promise path (Chrome, Firefox, Edge)
       if (result && typeof result.then === 'function') {
         result.then(function (p) {
           if (p === 'granted') {
@@ -1210,30 +1073,17 @@
       }
     }
 
-    // deskNotif: cross-browser desktop notification with proper error handling.
-    // Firefox requires the page to be focused OR the user to have interacted first.
     function deskNotif(sender, message) {
       if (!('Notification' in window) || Notification.permission !== 'granted') return;
       try {
-        var opts = {
-          body: message,
-          tag: 'nexus-audit-' + Date.now(), // unique tag prevents deduplication
-          requireInteraction: false
-        };
+        var opts = { body: message, tag: 'nexus-audit-' + Date.now(), requireInteraction: false };
         var n = new Notification('Nexus Audit — @' + sender, opts);
-        n.onclick = function () {
-          try { window.focus(); } catch (e) { }
-          n.close();
-        };
-        // Auto-close after 8s — Firefox doesn't auto-close
+        n.onclick = function () { try { window.focus(); } catch (e) { } n.close(); };
         setTimeout(function () { try { n.close(); } catch (e) { } }, 8000);
       } catch (err) {
-        // ServiceWorker path for some Firefox configs
         if (navigator.serviceWorker && navigator.serviceWorker.controller) {
           navigator.serviceWorker.controller.postMessage({
-            type: 'SHOW_NOTIFICATION',
-            title: 'Nexus Audit — @' + sender,
-            body: message
+            type: 'SHOW_NOTIFICATION', title: 'Nexus Audit — @' + sender, body: message
           });
         }
       }
@@ -1283,7 +1133,6 @@
 
     // ── init ──────────────────────────────────────────────────────
     window.onload = function () {
-      // Handle password reset page: /reset-password?token=xxx
       var params = new URLSearchParams(window.location.search);
       var resetToken = params.get('token');
       if (resetToken && window.location.pathname.indexOf('reset-password') > -1) {
@@ -1296,20 +1145,17 @@
       } catch (err) { localStorage.removeItem('me'); }
     };
 
-    // Error tracking for production debugging
     window.onerror = function (msg, url, line, col, error) {
       console.error('❌ Runtime error:', msg, 'at', url + ':' + line + ':' + col);
       addLog('Error: ' + msg, 'error');
       return false;
     };
 
-    // Unhandled promise rejection
     window.onunhandledrejection = function (event) {
       console.error('❌ Unhandled promise rejection:', event.reason);
       addLog('Promise error: ' + event.reason, 'error');
     };
 
-    // Reset password page — shown when user clicks email link
     function showResetPage(token) {
       document.getElementById('authSec').classList.remove('hidden');
       document.getElementById('authSec').innerHTML =
@@ -1346,8 +1192,7 @@
       if (pwd !== conf) return toast('Error', 'Passwords do not match', 'error');
       try {
         var r = await fetch(API + '/reset-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: token, password: pwd })
         });
         var msg = await r.text();
@@ -1367,4 +1212,3 @@
       if (drop && wrap && !wrap.contains(e.target))
         drop.classList.add('hidden');
     });
- 
