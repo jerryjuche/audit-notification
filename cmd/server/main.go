@@ -52,13 +52,6 @@ func main() {
 	log.Printf("🚀 Server starting on :%s", port)
 	log.Printf("📡 WebSocket : ws://localhost:%s/ws", port)
 	log.Printf("🌐 Client    : http://localhost:%s", port)
-	log.Printf("✅ All 7 critical fixes applied")
-	log.Printf("   • Real-time notification sync with Page Visibility API")
-	log.Printf("   • Email reset completely removed (passcode-only)")
-	log.Printf("   • Dropdown click regression fixed")
-	log.Printf("   • Offline user modal implemented")
-	log.Printf("   • System integrity validated")
-	log.Printf("   • Production-ready deployment")
 
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("❌ Server error: %v", err)
