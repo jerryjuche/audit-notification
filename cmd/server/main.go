@@ -15,16 +15,14 @@ func main() {
 	}
 
 	websocket.InitDB()
-	
-	
 
 	// ── WebSocket ────────────────────────────────────────────────
 	http.HandleFunc("/ws", websocket.EchoHandler)
 
 	// ── Auth (PASSCODE-BASED ONLY - EMAIL RESET REMOVED) ────────
-	http.HandleFunc("/register",                websocket.RegisterHandler)
-	http.HandleFunc("/login",                   websocket.LoginHandler)
-	http.HandleFunc("/verify-passcode",         websocket.VerifyPasscodeHandler)
+	http.HandleFunc("/register", websocket.RegisterHandler)
+	http.HandleFunc("/login", websocket.LoginHandler)
+	http.HandleFunc("/verify-passcode", websocket.VerifyPasscodeHandler)
 	http.HandleFunc("/reset-password-passcode", websocket.ResetPasswordPasscodeHandler)
 
 	// ── Users & Search ───────────────────────────────────────────
@@ -32,21 +30,21 @@ func main() {
 	http.HandleFunc("/online", websocket.OnlineUsersHandler)
 
 	// ── Communication ────────────────────────────────────────────
-	http.HandleFunc("/audit",     websocket.AuditHandler)
-	http.HandleFunc("/reply",     websocket.ReplyHandler)
+	http.HandleFunc("/audit", websocket.AuditHandler)
+	http.HandleFunc("/reply", websocket.ReplyHandler)
 	http.HandleFunc("/broadcast", websocket.BroadcastHandler)
-	http.HandleFunc("/feedback",  websocket.FeedbackHandler)
+	http.HandleFunc("/feedback", websocket.FeedbackHandler)
 
 	// ── Notification Sync (NEW - FIX FOR ISSUE #1) ──────────────
 	http.HandleFunc("/sync-notifications", websocket.SyncNotificationsHandler)
-	http.HandleFunc("/mark-delivered",     websocket.MarkDeliveredHandler)
+	http.HandleFunc("/mark-delivered", websocket.MarkDeliveredHandler)
 
 	// ── Admin ────────────────────────────────────────────────────
-	http.HandleFunc("/import",                  websocket.ImportUsersHandler)
-	http.HandleFunc("/admin/users",             websocket.GetAllUsersHandler)
-	http.HandleFunc("/admin/feedback",          websocket.GetFeedbackHandler)
-	http.HandleFunc("/admin/feedback/update",   websocket.UpdateFeedbackHandler)
-	http.HandleFunc("/admin/stats",             websocket.SystemStatsHandler)
+	http.HandleFunc("/import", websocket.ImportUsersHandler)
+	http.HandleFunc("/admin/users", websocket.GetAllUsersHandler)
+	http.HandleFunc("/admin/feedback", websocket.GetFeedbackHandler)
+	http.HandleFunc("/admin/feedback/update", websocket.UpdateFeedbackHandler)
+	http.HandleFunc("/admin/stats", websocket.SystemStatsHandler)
 
 	// ── Static client ────────────────────────────────────────────
 	http.Handle("/", http.FileServer(http.Dir("./client")))
@@ -58,5 +56,6 @@ func main() {
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("❌ Server error: %v", err)
 	}
-	
+
+	http.HandleFunc("/admin/clear-audits", websocket.ClearAuditsHandler)
 }

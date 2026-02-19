@@ -1889,3 +1889,10 @@ func ImportUsersHandler(w http.ResponseWriter, r *http.Request) {
 		"unregistered": unregistered,
 	})
 }
+
+func ClearAuditsHandler(w http.ResponseWriter, r *http.Request) {
+    cors(w)
+    if !isAdmin(r) { jsonErr(w, 403, "Admin only"); return }
+    db.Exec("TRUNCATE TABLE notifications RESTART IDENTITY")
+    jsonOK(w, map[string]string{"message": "All audits cleared"})
+}
