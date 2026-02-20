@@ -260,16 +260,22 @@ function showApp() {
   checkPerm();
   auditCount = parseInt(localStorage.getItem('ac') || '0');
   document.getElementById('sAud').textContent = auditCount;
+  var sAud2 = document.getElementById('sAud2');
+  if (sAud2) sAud2.textContent = auditCount;
   if (me.username === 'admin') showAdminPanels();
   addLog('Welcome, ' + (me.full_name || me.username), 'success');
   setTimeout(function () { if (!ws || ws.readyState !== WebSocket.OPEN) connectWS(); }, 400);
 }
 
 function showAdminPanels() {
+  // Swap stat rows — hide user row, show admin row
+  document.getElementById('statsRow').style.display = 'none';
+  document.getElementById('adminStatsRow').style.display = 'grid';
+  document.getElementById('scFb').style.display = 'block';
+
   ['importCard', 'bcCard', 'userCard', 'fbMgmt', 'statsCard'].forEach(function (id) {
     document.getElementById(id).classList.remove('hidden');
   });
-  document.getElementById('scFb').style.display = 'block';
   document.getElementById('fbForm').classList.add('hidden');
   loadUsers(); loadFeedback(); loadStats();
 }
@@ -355,6 +361,9 @@ async function fetchOnline() {
     var d = await r.json();
     online = d.online || [];
     document.getElementById('sOn').textContent = online.length;
+    // Keep admin row in sync too
+    var sOn2 = document.getElementById('sOn2');
+    if (sOn2) sOn2.textContent = online.length;
     if (d.total !== undefined) document.getElementById('sTot').textContent = d.total;
     renderChips();
     if (me && me.username === 'admin') {
@@ -743,6 +752,8 @@ async function proceedWithAudit(target, detail) {
     document.getElementById('aDetail').value = '';
     auditCount++; localStorage.setItem('ac', auditCount);
     document.getElementById('sAud').textContent = auditCount;
+    var sAud2 = document.getElementById('sAud2');
+    if (sAud2) sAud2.textContent = auditCount;
   } catch (err) { toast('Error', err.message, 'error'); }
 }
 

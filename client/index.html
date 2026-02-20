@@ -1610,6 +1610,181 @@
         max-width: none
       }
     }
+
+    /* ── MOBILE FIXES ── */
+    @media (max-width: 768px) {
+
+      /* Cards */
+      .card {
+        padding: 16px;
+        border-radius: 12px;
+      }
+
+      /* Stats grid — 2x2 on mobile instead of 4x1 */
+      .g4 {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      /* Single column everything */
+      .g2 {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      /* Header */
+      .hdr-in {
+        padding: 0 14px;
+        height: 54px;
+      }
+
+      .logo span {
+        font-size: .95rem;
+      }
+
+      /* Notification panel — full width */
+      .npanel {
+        width: 100%;
+        right: 0;
+        left: 0;
+        top: 54px;
+        border-radius: 0;
+        max-height: 70vh;
+      }
+
+      /* Modal — full screen on mobile */
+      .mover {
+        padding: 0;
+        align-items: flex-end;
+      }
+
+      .modal {
+        max-width: 100%;
+        border-radius: 20px 20px 0 0;
+        padding: 20px 16px;
+        max-height: 90vh;
+      }
+
+      /* Buttons — easier to tap */
+      button {
+        min-height: 44px;
+      }
+
+      .bsm {
+        min-height: 36px;
+        padding: 8px 14px;
+      }
+
+      /* Toast — full width */
+      .tc {
+        right: 10px;
+        left: 10px;
+        max-width: none;
+        top: 64px;
+      }
+
+      .toast {
+        font-size: .85rem;
+      }
+
+      /* Table — scrollable */
+      .utbl-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .utbl {
+        min-width: 600px;
+      }
+
+      .utbl th,
+      .utbl td {
+        padding: 10px 8px;
+        font-size: .8rem;
+      }
+
+      /* Search drop — full width */
+      .sdrop {
+        position: fixed;
+        left: 14px;
+        right: 14px;
+        width: auto;
+      }
+
+      /* Audit card inputs — stack on mobile */
+      #auditCard .g2 {
+        grid-template-columns: 1fr;
+      }
+
+      /* Chips wrap better */
+      #chips {
+        gap: 6px;
+      }
+
+      .chip {
+        font-size: .75rem;
+        padding: 4px 10px;
+      }
+
+      /* Log box shorter on mobile */
+      .log {
+        max-height: 180px;
+        font-size: .72rem;
+      }
+
+      /* Import card pills wrap */
+      .importCard [style*="display:flex"] {
+        flex-wrap: wrap;
+      }
+
+      /* Stat values smaller */
+      .sv {
+        font-size: 1.6rem;
+      }
+
+      .sl {
+        font-size: .68rem;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .g4 {
+        grid-template-columns: 1fr;
+      }
+
+      .logo span {
+        display: none;
+      }
+
+      .wrap {
+        padding: 10px;
+      }
+    }
+
+    /* iOS Safari — prevent zoom on input focus */
+    @media (max-width: 768px) {
+
+      input,
+      select,
+      textarea {
+        font-size: 16px !important;
+      }
+    }
+
+    /* Touch targets */
+    @media (hover: none) and (pointer: coarse) {
+      .sitem {
+        padding: 14px;
+      }
+
+      .ni {
+        padding: 14px;
+      }
+
+      .tab {
+        padding: 12px;
+      }
+    }
   </style>
 </head>
 
@@ -1819,33 +1994,63 @@
       </div>
 
       <!-- STATS ROW -->
-      <div class="g4" style="margin-bottom:20px">
+      <div id="statsRow" class="g2" style="margin-bottom:20px;max-width:600px">
         <div class="sc">
           <div class="sc-line" style="background:linear-gradient(90deg,var(--cyan),var(--blue))"></div>
-          <div class="sl"><svg class="ic" width="13" height="13">
+          <div class="sl">
+            <svg class="ic" width="13" height="13">
               <use href="#ic-wifi" />
-            </svg> Online</div>
+            </svg> Users Online
+          </div>
           <div class="sv" id="sOn">0</div>
         </div>
         <div class="sc">
+          <div class="sc-line" style="background:linear-gradient(90deg,var(--green),var(--cyan))"></div>
+          <div class="sl">
+            <svg class="ic" width="13" height="13">
+              <use href="#ic-send" />
+            </svg> Audits Sent
+          </div>
+          <div class="sv" id="sAud">0</div>
+        </div>
+      </div>
+
+      <!-- ADMIN STATS ROW (hidden by default) -->
+      <div id="adminStatsRow" class="g4" style="margin-bottom:20px;display:none">
+        <div class="sc">
+          <div class="sc-line" style="background:linear-gradient(90deg,var(--cyan),var(--blue))"></div>
+          <div class="sl">
+            <svg class="ic" width="13" height="13">
+              <use href="#ic-wifi" />
+            </svg> Users Online
+          </div>
+          <div class="sv" id="sOn2">0</div>
+        </div>
+        <div class="sc">
           <div class="sc-line" style="background:linear-gradient(90deg,var(--blue),var(--purple))"></div>
-          <div class="sl"><svg class="ic" width="13" height="13">
+          <div class="sl">
+            <svg class="ic" width="13" height="13">
               <use href="#ic-users" />
-            </svg> Total Users</div>
+            </svg> Total Users
+          </div>
           <div class="sv" id="sTot">0</div>
         </div>
         <div class="sc">
           <div class="sc-line" style="background:linear-gradient(90deg,var(--green),var(--cyan))"></div>
-          <div class="sl"><svg class="ic" width="13" height="13">
+          <div class="sl">
+            <svg class="ic" width="13" height="13">
               <use href="#ic-send" />
-            </svg> Audits Sent</div>
-          <div class="sv" id="sAud">0</div>
+            </svg> Audits Sent
+          </div>
+          <div class="sv" id="sAud2">0</div>
         </div>
         <div class="sc" id="scFb" style="display:none">
           <div class="sc-line" style="background:linear-gradient(90deg,var(--amber),var(--red))"></div>
-          <div class="sl"><svg class="ic" width="13" height="13">
+          <div class="sl">
+            <svg class="ic" width="13" height="13">
               <use href="#ic-clipboard" />
-            </svg> Pending Feedback</div>
+            </svg> Pending Feedback
+          </div>
           <div class="sv" id="sFb">0</div>
         </div>
       </div>
@@ -1895,7 +2100,7 @@
         </div>
         <div class="g2">
           <div class="fg swrap">
-            <label>Target User</label>
+            <label><b>User</b> (Gitea username / Name)</label>
             <div class="inp-wrap">
               <input id="tUser" type="text" placeholder="Search by gitea username or name…" autocomplete="off"
                 oninput="srchUsers(this.value)" onfocus="srchUsers(this.value)" style="padding-left:40px">
@@ -1906,9 +2111,9 @@
             <div id="sdrop" class="sdrop hidden"></div>
           </div>
           <div class="fg">
-            <label>Audit Details</label>
+            <label>Message</label>
             <div class="inp-wrap">
-              <input id="aDetail" type="text" placeholder="Describe what needs auditing…" style="padding-left:40px">
+              <input id="aDetail" type="text" placeholder="Send a message to the user" style="padding-left:40px">
               <svg class="ic inp-ic" width="16" height="16">
                 <use href="#ic-clipboard" />
               </svg>
@@ -2237,4 +2442,5 @@
     </div>
   </div>
 </body>
+
 </html>
