@@ -1785,6 +1785,755 @@
         padding: 12px;
       }
     }
+
+    /* ── MOBILE FIXES ── */
+    @media (max-width: 768px) {
+
+      /* Cards */
+      .card {
+        padding: 16px;
+        border-radius: 12px;
+      }
+
+      /* Stats grid — 2x2 on mobile instead of 4x1 */
+      .g4 {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      /* Single column everything */
+      .g2 {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      /* Header */
+      .hdr-in {
+        padding: 0 14px;
+        height: 54px;
+      }
+
+      .logo span {
+        font-size: .95rem;
+      }
+
+      /* Notification panel — full width */
+      .npanel {
+        width: 100%;
+        right: 0;
+        left: 0;
+        top: 54px;
+        border-radius: 0;
+        max-height: 70vh;
+      }
+
+      /* Modal — full screen on mobile */
+      .mover {
+        padding: 0;
+        align-items: flex-end;
+      }
+
+      .modal {
+        max-width: 100%;
+        border-radius: 20px 20px 0 0;
+        padding: 20px 16px;
+        max-height: 90vh;
+      }
+
+      /* Buttons — easier to tap */
+      button {
+        min-height: 44px;
+      }
+
+      .bsm {
+        min-height: 36px;
+        padding: 8px 14px;
+      }
+
+      /* Toast — full width */
+      .tc {
+        right: 10px;
+        left: 10px;
+        max-width: none;
+        top: 64px;
+      }
+
+      .toast {
+        font-size: .85rem;
+      }
+
+      /* Table — scrollable */
+      .utbl-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .utbl {
+        min-width: 600px;
+      }
+
+      .utbl th,
+      .utbl td {
+        padding: 10px 8px;
+        font-size: .8rem;
+      }
+
+      /* Search drop — full width */
+      .sdrop {
+        position: fixed;
+        left: 14px;
+        right: 14px;
+        width: auto;
+      }
+
+      /* Audit card inputs — stack on mobile */
+      #auditCard .g2 {
+        grid-template-columns: 1fr;
+      }
+
+      /* Chips wrap better */
+      #chips {
+        gap: 6px;
+      }
+
+      .chip {
+        font-size: .75rem;
+        padding: 4px 10px;
+      }
+
+      /* Log box shorter on mobile */
+      .log {
+        max-height: 180px;
+        font-size: .72rem;
+      }
+
+      /* Import card pills wrap */
+      .importCard [style*="display:flex"] {
+        flex-wrap: wrap;
+      }
+
+      /* Stat values smaller */
+      .sv {
+        font-size: 1.6rem;
+      }
+
+      .sl {
+        font-size: .68rem;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .g4 {
+        grid-template-columns: 1fr;
+      }
+
+      .logo span {
+        display: none;
+      }
+
+      .wrap {
+        padding: 10px;
+      }
+    }
+
+    /* iOS Safari — prevent zoom on input focus */
+    @media (max-width: 768px) {
+
+      input,
+      select,
+      textarea {
+        font-size: 16px !important;
+      }
+    }
+
+    /* Touch targets */
+    @media (hover: none) and (pointer: coarse) {
+      .sitem {
+        padding: 14px;
+      }
+
+      .ni {
+        padding: 14px;
+      }
+
+      .tab {
+        padding: 12px;
+      }
+    }
+
+    /* ── ONBOARDING OVERLAY ──────────────────────────────────────── */
+    #onboardOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(7, 14, 22, 0.97);
+      backdrop-filter: blur(24px) saturate(180%);
+      animation: ob-fade-in 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    @keyframes ob-fade-in {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    #onboardOverlay.ob-exit {
+      animation: ob-fade-out 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    @keyframes ob-fade-out {
+      from {
+        opacity: 1;
+      }
+
+      to {
+        opacity: 0;
+        pointer-events: none;
+      }
+    }
+
+    /* Background grid pattern */
+    #onboardOverlay::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(30, 184, 208, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30, 184, 208, 0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+    }
+
+    /* Ambient glow blobs */
+    #onboardOverlay::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 55% 45% at 15% 20%, rgba(30, 184, 208, 0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 45% 55% at 85% 80%, rgba(37, 99, 196, 0.10) 0%, transparent 60%),
+        radial-gradient(ellipse 35% 35% at 50% 50%, rgba(124, 92, 191, 0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── MODAL CARD ─────────────────────────────────────────────── */
+    .ob-card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 640px;
+      background: linear-gradient(145deg, #111c2a 0%, #0d1620 60%, #0a1119 100%);
+      border: 1px solid rgba(30, 184, 208, 0.2);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+        0 32px 80px rgba(0, 0, 0, 0.7),
+        0 0 60px rgba(30, 184, 208, 0.06);
+    }
+
+    /* Top shimmer line */
+    .ob-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg,
+          transparent 0%,
+          rgba(30, 184, 208, 0.6) 30%,
+          rgba(124, 92, 191, 0.4) 70%,
+          transparent 100%);
+    }
+
+    /* ── SKIP BUTTON ────────────────────────────────────────────── */
+    .ob-skip {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: rgba(143, 163, 200, 0.7);
+      font-size: .75rem;
+      font-family: var(--font-hd);
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 99px;
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 10;
+      min-height: unset;
+      box-shadow: none;
+    }
+
+    .ob-skip:hover {
+      background: rgba(255, 255, 255, 0.09);
+      border-color: rgba(255, 255, 255, 0.15);
+      color: var(--t0);
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* ── PROGRESS DOTS ──────────────────────────────────────────── */
+    .ob-dots {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 22px 32px 0;
+    }
+
+    .ob-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, 0.12);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+
+    .ob-dot.active {
+      width: 28px;
+      background: linear-gradient(90deg, var(--cyan), #6bb8ff);
+      box-shadow: 0 0 10px rgba(30, 184, 208, 0.5);
+    }
+
+    .ob-dot.done {
+      background: rgba(30, 184, 208, 0.35);
+    }
+
+    /* ── SLIDE CONTAINER ────────────────────────────────────────── */
+    .ob-slides {
+      position: relative;
+      overflow: hidden;
+      min-height: 420px;
+    }
+
+    .ob-slide {
+      position: absolute;
+      inset: 0;
+      padding: 32px 40px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      opacity: 0;
+      transform: translateX(60px) scale(0.97);
+      transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+    }
+
+    .ob-slide.active {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .ob-slide.exit-left {
+      opacity: 0;
+      transform: translateX(-60px) scale(0.97);
+    }
+
+    /* ── ICON BADGE ─────────────────────────────────────────────── */
+    .ob-icon-wrap {
+      position: relative;
+      margin-bottom: 28px;
+      margin-top: 8px;
+    }
+
+    .ob-icon-ring {
+      position: absolute;
+      inset: -12px;
+      border-radius: 50%;
+      border: 1px solid;
+      opacity: 0.2;
+      animation: ob-ring-pulse 3s ease-in-out infinite;
+    }
+
+    .ob-icon-ring-2 {
+      position: absolute;
+      inset: -24px;
+      border-radius: 50%;
+      border: 1px solid;
+      opacity: 0.1;
+      animation: ob-ring-pulse 3s ease-in-out infinite 0.5s;
+    }
+
+    @keyframes ob-ring-pulse {
+
+      0%,
+      100% {
+        transform: scale(1);
+        opacity: 0.15;
+      }
+
+      50% {
+        transform: scale(1.05);
+        opacity: 0.25;
+      }
+    }
+
+    .ob-icon-bg {
+      width: 80px;
+      height: 80px;
+      border-radius: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .ob-icon-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .ob-icon-bg svg {
+      width: 34px;
+      height: 34px;
+      color: #fff;
+      filter: drop-shadow(0 0 8px currentColor);
+    }
+
+    /* ── SLIDE TEXT ─────────────────────────────────────────────── */
+    .ob-step-label {
+      font-size: .68rem;
+      font-family: var(--font-mn);
+      font-weight: 600;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      opacity: 0.5;
+    }
+
+    .ob-title {
+      font-family: var(--font-hd);
+      font-size: 1.65rem;
+      font-weight: 800;
+      letter-spacing: -.03em;
+      line-height: 1.15;
+      color: var(--t0);
+      margin-bottom: 14px;
+    }
+
+    .ob-title span {
+      background: linear-gradient(135deg, var(--cyan), #6bb8ff 50%, var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .ob-desc {
+      font-size: .9375rem;
+      color: var(--t1);
+      line-height: 1.7;
+      max-width: 480px;
+      margin-bottom: 28px;
+    }
+
+    /* ── FEATURE PILLS ──────────────────────────────────────────── */
+    .ob-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: auto;
+    }
+
+    .ob-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 16px;
+      border-radius: 99px;
+      font-size: .8rem;
+      font-family: var(--font-hd);
+      font-weight: 600;
+      border: 1px solid;
+      transition: all 0.2s;
+    }
+
+    .ob-pill svg {
+      width: 13px;
+      height: 13px;
+      flex-shrink: 0;
+    }
+
+    .ob-pill-cyan {
+      background: rgba(30, 184, 208, 0.08);
+      border-color: rgba(30, 184, 208, 0.25);
+      color: var(--cyan);
+    }
+
+    .ob-pill-green {
+      background: rgba(34, 201, 122, 0.08);
+      border-color: rgba(34, 201, 122, 0.25);
+      color: var(--green);
+    }
+
+    .ob-pill-amber {
+      background: rgba(245, 158, 58, 0.08);
+      border-color: rgba(245, 158, 58, 0.25);
+      color: var(--amber);
+    }
+
+    .ob-pill-purple {
+      background: rgba(124, 92, 191, 0.08);
+      border-color: rgba(124, 92, 191, 0.25);
+      color: var(--purple);
+    }
+
+    .ob-pill-blue {
+      background: rgba(37, 99, 196, 0.1);
+      border-color: rgba(37, 99, 196, 0.3);
+      color: #6bb8ff;
+    }
+
+    /* ── STEP ITEMS (how-to lists) ──────────────────────────────── */
+    .ob-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 420px;
+      text-align: left;
+      margin-top: auto;
+    }
+
+    .ob-step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 12px 16px;
+      transition: all 0.2s;
+    }
+
+    .ob-step-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(30, 184, 208, 0.2);
+    }
+
+    .ob-step-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .72rem;
+      font-weight: 800;
+      font-family: var(--font-hd);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .ob-step-text strong {
+      display: block;
+      font-size: .875rem;
+      font-weight: 700;
+      color: var(--t0);
+      font-family: var(--font-hd);
+      margin-bottom: 2px;
+    }
+
+    .ob-step-text span {
+      font-size: .8rem;
+      color: var(--t2);
+      line-height: 1.5;
+    }
+
+    /* ── FOOTER NAVIGATION ──────────────────────────────────────── */
+    .ob-footer {
+      padding: 20px 32px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      gap: 12px;
+    }
+
+    .ob-counter {
+      font-size: .75rem;
+      color: var(--t3);
+      font-family: var(--font-mn);
+      font-weight: 500;
+    }
+
+    .ob-nav {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .ob-btn-back {
+      padding: 10px 20px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--t1);
+      border-radius: 10px;
+      font-size: .875rem;
+      font-weight: 600;
+      font-family: var(--font-hd);
+      cursor: pointer;
+      transition: all 0.2s;
+      min-height: unset;
+      box-shadow: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ob-btn-back:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.14);
+      color: var(--t0);
+      transform: none;
+      box-shadow: none;
+    }
+
+    .ob-btn-next {
+      padding: 10px 24px;
+      background: linear-gradient(135deg, var(--cyan), var(--blue2));
+      border: none;
+      color: #fff;
+      border-radius: 10px;
+      font-size: .875rem;
+      font-weight: 700;
+      font-family: var(--font-hd);
+      cursor: pointer;
+      transition: all 0.25s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 20px rgba(30, 184, 208, 0.25);
+      min-height: unset;
+      letter-spacing: -.01em;
+    }
+
+    .ob-btn-next:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(30, 184, 208, 0.4);
+    }
+
+    .ob-btn-next:active {
+      transform: translateY(0);
+    }
+
+    .ob-btn-finish {
+      background: linear-gradient(135deg, var(--green), #1aa864);
+      box-shadow: 0 4px 20px rgba(34, 201, 122, 0.25);
+    }
+
+    .ob-btn-finish:hover {
+      box-shadow: 0 8px 28px rgba(34, 201, 122, 0.4);
+    }
+
+    /* ── WELCOME SLIDE SPECIAL ──────────────────────────────────── */
+    .ob-wordmark {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .ob-wordmark-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--cyan), var(--blue2));
+      border-radius: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 24px rgba(30, 184, 208, 0.3);
+    }
+
+    .ob-wordmark-icon svg {
+      width: 22px;
+      height: 22px;
+      color: #fff;
+    }
+
+    .ob-wordmark-text {
+      font-family: var(--font-hd);
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      color: var(--t0);
+    }
+
+    .ob-wordmark-text small {
+      display: block;
+      font-size: .68rem;
+      font-weight: 500;
+      color: var(--t2);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-top: 1px;
+    }
+
+    /* ── MOBILE ─────────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .ob-card {
+        border-radius: 20px;
+      }
+
+      .ob-slide {
+        padding: 24px 22px 20px;
+      }
+
+      .ob-title {
+        font-size: 1.35rem;
+      }
+
+      .ob-desc {
+        font-size: .875rem;
+      }
+
+      .ob-footer {
+        padding: 16px 22px 22px;
+      }
+
+      .ob-icon-bg {
+        width: 68px;
+        height: 68px;
+        border-radius: 18px;
+      }
+
+      .ob-icon-bg svg {
+        width: 28px;
+        height: 28px;
+      }
+
+      .ob-slides {
+        min-height: 380px;
+      }
+
+      .ob-steps {
+        gap: 8px;
+      }
+
+      .ob-step-item {
+        padding: 10px 13px;
+      }
+    }
   </style>
 </head>
 
@@ -2320,7 +3069,8 @@
             New Today: <strong id="uNew" style="color:var(--cyan)">0</strong>
           </span>
         </div>
-        <div style="max-height:480px;overflow-y:auto;border:1px solid var(--br0);border-radius:var(--r-md)">
+        <div class="utbl-wrap"
+          style="max-height:480px;overflow-y:auto;border:1px solid var(--br0);border-radius:var(--r-md)">
           <table class="utbl">
             <thead>
               <tr>
@@ -2441,6 +3191,264 @@
 
     </div>
   </div>
+
+  <div id="onboardOverlay" style="display:none">
+    <div class="ob-card">
+
+      <!-- Skip -->
+      <button class="ob-skip" onclick="obSkip()">Skip</button>
+
+      <!-- Progress dots -->
+      <div class="ob-dots" id="obDots"></div>
+
+      <!-- Slides -->
+      <div class="ob-slides" id="obSlides">
+
+        <!-- SLIDE 0 — Welcome -->
+        <div class="ob-slide" data-slide="0">
+          <div class="ob-wordmark">
+            <div class="ob-wordmark-icon">
+              <svg class="ic" width="22" height="22">
+                <use href="#ic-shield" />
+              </svg>
+            </div>
+            <div class="ob-wordmark-text">
+              Nexus Audit
+              <small>Real-Time Compliance Platform</small>
+            </div>
+          </div>
+
+          <div class="ob-icon-wrap">
+            <div class="ob-icon-ring" style="border-color:var(--cyan)"></div>
+            <div class="ob-icon-ring-2" style="border-color:var(--cyan)"></div>
+            <div class="ob-icon-bg" style="background:linear-gradient(135deg,#0e8fa4,#1a4fa0)">
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <polyline points="9 12 11 14 15 10" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="ob-step-label" style="color:var(--cyan)">Welcome aboard</div>
+          <h2 class="ob-title">Your audit workflow,<br><span>reimagined</span></h2>
+          <p class="ob-desc">
+            Nexus Audit delivers real-time compliance notifications instantly across your team.
+            No delays, no missed requests — just instant, reliable communication.
+          </p>
+
+          <div class="ob-pills">
+            <div class="ob-pill ob-pill-cyan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <circle cx="12" cy="12" r="2" />
+                <path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49" />
+              </svg>
+              Real-time WebSocket
+            </div>
+            <div class="ob-pill ob-pill-green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              Instant delivery
+            </div>
+            <div class="ob-pill ob-pill-purple">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              Secure &amp; encrypted
+            </div>
+          </div>
+        </div>
+
+        <!-- SLIDE 1 — Connection -->
+        <div class="ob-slide" data-slide="1">
+          <div class="ob-icon-wrap">
+            <div class="ob-icon-ring" style="border-color:var(--cyan)"></div>
+            <div class="ob-icon-ring-2" style="border-color:var(--cyan)"></div>
+            <div class="ob-icon-bg" style="background:linear-gradient(135deg,#0e8fa4,#1a4fa0)">
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                <line x1="12" y1="20" x2="12.01" y2="20" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="ob-step-label" style="color:var(--cyan)">Step 1 of 3</div>
+          <h2 class="ob-title">Connect to go <span>live</span></h2>
+          <p class="ob-desc">
+            Hit <strong style="color:var(--t0)">Connect</strong> on the connection card to establish your
+            real-time link. A green badge confirms you're live and ready to send and receive audits instantly.
+          </p>
+
+          <div class="ob-steps">
+            <div class="ob-step-item">
+              <div class="ob-step-num" style="background:rgba(30,184,208,0.12);color:var(--cyan)">1</div>
+              <div class="ob-step-text">
+                <strong>Click Connect</strong>
+                <span>Find the Connection card and press the blue Connect button</span>
+              </div>
+            </div>
+            <div class="ob-step-item">
+              <div class="ob-step-num" style="background:rgba(34,201,122,0.12);color:var(--green)">2</div>
+              <div class="ob-step-text">
+                <strong>Watch the badge turn green</strong>
+                <span>A green "Connected" badge means you're live and receiving notifications</span>
+              </div>
+            </div>
+            <div class="ob-step-item">
+              <div class="ob-step-num" style="background:rgba(245,158,58,0.12);color:var(--amber)">3</div>
+              <div class="ob-step-text">
+                <strong>Enable desktop alerts</strong>
+                <span>Allow browser notifications when prompted so you never miss an audit</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SLIDE 2 — Sending Audits -->
+        <div class="ob-slide" data-slide="2">
+          <div class="ob-icon-wrap">
+            <div class="ob-icon-ring" style="border-color:var(--green)"></div>
+            <div class="ob-icon-ring-2" style="border-color:var(--green)"></div>
+            <div class="ob-icon-bg" style="background:linear-gradient(135deg,#1aa864,#0e7a4a)">
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="ob-step-label" style="color:var(--green)">Step 2 of 3</div>
+          <h2 class="ob-title">Send audits <span
+              style="background:linear-gradient(135deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">instantly</span>
+          </h2>
+          <p class="ob-desc">
+            Search for a teammate by name or username, type your audit details,
+            and hit Send. If they're offline, the request is queued and delivered
+            the moment they reconnect.
+          </p>
+
+          <div class="ob-steps">
+            <div class="ob-step-item">
+              <div class="ob-step-num" style="background:rgba(34,201,122,0.12);color:var(--green)">1</div>
+              <div class="ob-step-text">
+                <strong>Search for a user</strong>
+                <span>Type their name or Gitea username in the Target User field</span>
+              </div>
+            </div>
+            <div class="ob-step-item">
+              <div class="ob-step-num" style="background:rgba(34,201,122,0.12);color:var(--green)">2</div>
+              <div class="ob-step-text">
+                <strong>Describe the audit</strong>
+                <span>Fill in what needs auditing in the Audit Details field</span>
+              </div>
+            </div>
+            <div class="ob-step-item">
+              <div class="ob-step-num" style="background:rgba(34,201,122,0.12);color:var(--green)">3</div>
+              <div class="ob-step-text">
+                <strong>Offline? No problem</strong>
+                <span>Audits queue automatically and deliver when they come online</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SLIDE 3 — Notifications & Replies -->
+        <div class="ob-slide" data-slide="3">
+          <div class="ob-icon-wrap">
+            <div class="ob-icon-ring" style="border-color:var(--amber)"></div>
+            <div class="ob-icon-ring-2" style="border-color:var(--amber)"></div>
+            <div class="ob-icon-bg" style="background:linear-gradient(135deg,#c47e10,#92570a)">
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                <circle cx="18" cy="8" r="4" fill="var(--red)" stroke="none" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="ob-step-label" style="color:var(--amber)">Step 3 of 3</div>
+          <h2 class="ob-title">Stay on top of <span
+              style="background:linear-gradient(135deg,var(--amber),var(--red));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">every
+              alert</span></h2>
+          <p class="ob-desc">
+            Your notification bell tracks every incoming audit. Tap any notification
+            to reply directly. The red badge shows unread count — never lose track of
+            a compliance request again.
+          </p>
+
+          <div class="ob-pills" style="margin-top:auto">
+            <div class="ob-pill ob-pill-amber">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+              Bell icon — top right
+            </div>
+            <div class="ob-pill ob-pill-cyan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <polyline points="9 17 4 12 9 7" />
+                <path d="M20 18v-2a4 4 0 0 0-4-4H4" />
+              </svg>
+              Reply to any audit
+            </div>
+            <div class="ob-pill ob-pill-green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                <line x1="12" y1="20" x2="12.01" y2="20" />
+              </svg>
+              Syncs even offline
+            </div>
+            <div class="ob-pill ob-pill-blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              Desktop alerts
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /ob-slides -->
+
+      <!-- Footer nav -->
+      <div class="ob-footer">
+        <span class="ob-counter" id="obCounter">1 / 4</span>
+        <div class="ob-nav">
+          <button class="ob-btn-back" id="obBack" onclick="obPrev()" style="display:none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            Back
+          </button>
+          <button class="ob-btn-next" id="obNext" onclick="obNext()">
+            Get Started
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /ob-card -->
+  </div><!-- /onboardOverlay -->
 </body>
 
 </html>

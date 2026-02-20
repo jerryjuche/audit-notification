@@ -41,13 +41,48 @@ document.addEventListener('visibilitychange', function () {
       if (me) syncNotifications();
     }, 4000); // 15 seconds when hidden
   }
+  document.addEventListener('visibilitychange', function () {
+    isTabVisible = !document.hidden;
+    if (isTabVisible && me) {
+      syncNotifications();
+      if (!ws || ws.readyState !== WebSocket.OPEN) connectWS();
+    }
+    // Don't stop sync when hidden — mobile needs it
+  });
+
+  // Add this below your existing visibilitychange listener
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && me) {
+      // Phone just unlocked / user switched back
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        addLog('Reconnecting after background…', 'info');
+        connectWS();
+      }
+      syncNotifications();
+    }
+  });
+  window.addEventListener('focus', function () {
+    if (me && (!ws || ws.readyState !== WebSocket.OPEN)) {
+      connectWS();
+    }
+    if (me) syncNotifications();
+  });
+
+  window.addEventListener('pageshow', function (e) {
+    if (e.persisted && me) {
+      // Page restored from iOS back/forward cache
+      connectWS();
+      syncNotifications();
+    }
+  });
 });
 function startNotificationSync() {
   if (!me) return;
   clearInterval(syncTimer);
   syncNotifications();
+  // AFTER — sync regardless of visibility on mobile
   syncTimer = setInterval(function () {
-    if (isTabVisible && me) syncNotifications();
+    if (me) syncNotifications();
   }, syncInterval);
 }
 
@@ -264,6 +299,7 @@ function showApp() {
   if (sAud2) sAud2.textContent = auditCount;
   if (me.username === 'admin') showAdminPanels();
   addLog('Welcome, ' + (me.full_name || me.username), 'success');
+  obShow(me.username);
   setTimeout(function () { if (!ws || ws.readyState !== WebSocket.OPEN) connectWS(); }, 400);
 }
 
@@ -1231,4 +1267,118 @@ document.addEventListener('click', function (e) {
   var wrap = document.querySelector('.swrap');
   if (drop && wrap && !wrap.contains(e.target))
     drop.classList.add('hidden');
+});
+
+// ── ONBOARDING ────────────────────────────────────────────────
+var OB_TOTAL = 4;
+var obCurrent = 0;
+
+function obShouldShow(username) {
+  try {
+    var key = 'ob_done_' + username;
+    return !localStorage.getItem(key);
+  } catch (e) { return false; }
+}
+
+function obMarkDone(username) {
+  try { localStorage.setItem('ob_done_' + username, '1'); } catch (e) { }
+}
+
+function obShow(username) {
+  if (!obShouldShow(username)) return;
+  obCurrent = 0;
+  obBuildDots();
+  obGoTo(0);
+  var el = document.getElementById('onboardOverlay');
+  el.style.display = 'flex';
+  el.classList.remove('ob-exit');
+}
+
+function obBuildDots() {
+  var c = document.getElementById('obDots');
+  c.innerHTML = '';
+  for (var i = 0; i < OB_TOTAL; i++) {
+    var d = document.createElement('div');
+    d.className = 'ob-dot' + (i === 0 ? ' active' : '');
+    d.setAttribute('data-i', i);
+    (function (idx) { d.addEventListener('click', function () { obGoTo(idx); }); })(i);
+    c.appendChild(d);
+  }
+}
+
+function obGoTo(idx) {
+  var slides = document.querySelectorAll('.ob-slide');
+  var dots = document.querySelectorAll('.ob-dot');
+
+  slides.forEach(function (s, i) {
+    s.classList.remove('active', 'exit-left');
+    if (i < idx) s.classList.add('exit-left');
+    if (i === idx) s.classList.add('active');
+  });
+
+  dots.forEach(function (d, i) {
+    d.classList.remove('active', 'done');
+    if (i === idx) d.classList.add('active');
+    if (i < idx) d.classList.add('done');
+  });
+
+  obCurrent = idx;
+
+  // Counter
+  document.getElementById('obCounter').textContent = (idx + 1) + ' / ' + OB_TOTAL;
+
+  // Back button
+  var back = document.getElementById('obBack');
+  back.style.display = idx === 0 ? 'none' : 'inline-flex';
+
+  // Next button
+  var next = document.getElementById('obNext');
+  var isLast = (idx === OB_TOTAL - 1);
+  next.textContent = '';
+  if (isLast) {
+    next.className = 'ob-btn-next ob-btn-finish';
+    next.innerHTML =
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
+      " Let's go";
+  } else if (idx === 0) {
+    next.className = 'ob-btn-next';
+    next.innerHTML =
+      'Get Started' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+  } else {
+    next.className = 'ob-btn-next';
+    next.innerHTML =
+      'Next' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+  }
+}
+
+function obNext() {
+  if (obCurrent < OB_TOTAL - 1) {
+    obGoTo(obCurrent + 1);
+  } else {
+    obDismiss();
+  }
+}
+
+function obPrev() {
+  if (obCurrent > 0) obGoTo(obCurrent - 1);
+}
+
+function obSkip() { obDismiss(); }
+
+function obDismiss() {
+  var el = document.getElementById('onboardOverlay');
+  el.classList.add('ob-exit');
+  if (me && me.username) obMarkDone(me.username);
+  setTimeout(function () { el.style.display = 'none'; }, 500);
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', function (e) {
+  var overlay = document.getElementById('onboardOverlay');
+  if (!overlay || overlay.style.display === 'none') return;
+  if (e.key === 'ArrowRight' || e.key === 'Enter') obNext();
+  if (e.key === 'ArrowLeft') obPrev();
+  if (e.key === 'Escape') obDismiss();
 });
