@@ -1382,3 +1382,19 @@ document.addEventListener('keydown', function (e) {
   if (e.key === 'ArrowLeft') obPrev();
   if (e.key === 'Escape') obDismiss();
 });
+
+
+/* ── AUTH TAB SWITCHER ──── add to fixed-script.js ── */
+function showAuthTab(tab, btn) {
+  // Update tabs
+  document.querySelectorAll('.auth-tab').forEach(function (t) {
+    t.classList.remove('on');
+  });
+  btn.classList.add('on');
+
+  // Update panels
+  document.querySelectorAll('.auth-panel').forEach(function (p) {
+    p.classList.remove('active');
+  });
+  document.getElementById(tab === 'login' ? 'loginPanel' : 'registerPanel').classList.add('active');
+}
