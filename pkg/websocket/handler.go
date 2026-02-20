@@ -161,6 +161,7 @@ func InitDB() {
 	// Start cleanup goroutines
 	go cleanupRateLimiter()
 	go monitorSystem()
+	go startDeliveryRetry()
 }
 
 // runMigrations applies any schema changes needed for new features.
@@ -1895,4 +1896,58 @@ func ClearAuditsHandler(w http.ResponseWriter, r *http.Request) {
     if !isAdmin(r) { jsonErr(w, 403, "Admin only"); return }
     db.Exec("TRUNCATE TABLE notifications RESTART IDENTITY")
     jsonOK(w, map[string]string{"message": "All audits cleared"})
+}
+
+func startDeliveryRetry() {
+    go func() {
+        ticker := time.NewTicker(3 * time.Second)
+        defer ticker.Stop()
+        for range ticker.C {
+            mu.RLock()
+            onlineUsers := make([]string, 0, len(connections))
+            for u := range connections {
+                onlineUsers = append(onlineUsers, u)
+            }
+            mu.RUnlock()
+
+            for _, username := range onlineUsers {
+                rows, err := db.Query(`
+                    SELECT id, sender, message, reply_to
+                    FROM notifications
+                    WHERE target=$1 AND delivered=FALSE
+                    ORDER BY timestamp ASC LIMIT 10
+                `, username)
+                if err != nil {
+                    continue
+                }
+                type pending struct {
+                    id      int64
+                    sender  string
+                    message string
+                    replyTo sql.NullInt64
+                }
+                var items []pending
+                for rows.Next() {
+                    var p pending
+                    if rows.Scan(&p.id, &p.sender, &p.message, &p.replyTo) == nil {
+                        items = append(items, p)
+                    }
+                }
+                rows.Close()
+
+                for _, it := range items {
+                    payload := map[string]interface{}{
+                        "id":       it.id,
+                        "message":  it.message,
+                        "sender":   it.sender,
+                        "canReply": !it.replyTo.Valid,
+                        "isReply":  it.replyTo.Valid,
+                    }
+                    if deliver(username, payload) {
+                        db.Exec("UPDATE notifications SET delivered=TRUE WHERE id=$1", it.id)
+                    }
+                }
+            }
+        }
+    }()
 }
